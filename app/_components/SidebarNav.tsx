@@ -24,6 +24,7 @@ export default function SidebarNav() {
       </div>
       <nav className="p-2 space-y-1 flex-1">
         <NavLink href="/products">Products</NavLink>
+        <NavLink href="/orders">Orders</NavLink>
         <NavLink href="/categories">Categories</NavLink>
       </nav>
       <div className="p-3 border-t">
