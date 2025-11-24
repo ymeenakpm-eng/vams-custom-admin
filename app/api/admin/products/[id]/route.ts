@@ -44,7 +44,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
         })
         const referer = req.headers.get("referer") || ""
         if (referer.includes(`/products/${id}`)) {
-          return NextResponse.redirect(new URL(`/products`, req.url))
+          return NextResponse.redirect(new URL(`/products?deleted=1`, req.url))
         }
         const text = await res.text()
         return new NextResponse(text, { status: res.status, headers: { "content-type": res.headers.get("content-type") || "application/json" } })
@@ -102,7 +102,7 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
 
     const referer = req.headers.get("referer") || ""
     if (referer.includes(`/products/${id}`)) {
-      return NextResponse.redirect(new URL(`/products`, req.url))
+      return NextResponse.redirect(new URL(`/products?deleted=1`, req.url))
     }
 
     const text = await res.text()

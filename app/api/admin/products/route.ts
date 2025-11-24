@@ -44,15 +44,18 @@ export async function POST(req: NextRequest) {
       cache: "no-store",
     })
 
+    const referer = req.headers.get("referer") || ""
     const text = await res.text()
     if (!res.ok) {
+      if (referer.includes("/products")) {
+        return NextResponse.redirect(new URL(`/products?error=1`, req.url))
+      }
       return NextResponse.json({ error: text }, { status: res.status })
     }
 
-    // If came from a form submit, redirect back to /products
-    const referer = req.headers.get("referer") || ""
+    // If came from a form submit, redirect back to /products with toast flag
     if (referer.includes("/products")) {
-      return NextResponse.redirect(new URL("/products", req.url))
+      return NextResponse.redirect(new URL("/products?created=1", req.url))
     }
 
     return new NextResponse(text, { status: 200, headers: { "content-type": "application/json" } })
