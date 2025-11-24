@@ -67,60 +67,62 @@ export default async function ProductsPage(props: any) {
 
   return (
     <main>
-      <h1 style={{ fontWeight: 600, fontSize: 20 }}>Products</h1>
-
-      <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 12, marginBottom: 12 }}>
-        <Suspense fallback={null}>
-          <SearchBox placeholder="Search products" />
-        </Suspense>
-        <Suspense fallback={null}>
-          <SortSelect />
-        </Suspense>
-        <Suspense fallback={null}>
-          <PageSizeSelect values={[10, 20, 50]} />
-        </Suspense>
+      <div className="bg-white border rounded-lg p-4 shadow-sm mb-4">
+        <div className="flex items-center justify-between mb-3">
+          <h1 className="text-lg font-semibold">Products</h1>
+          <CreateProductModal />
+        </div>
+        <div className="flex items-center gap-2">
+          <Suspense fallback={null}>
+            <SearchBox placeholder="Search products" />
+          </Suspense>
+          <Suspense fallback={null}>
+            <SortSelect />
+          </Suspense>
+          <Suspense fallback={null}>
+            <PageSizeSelect values={[10, 20, 50]} />
+          </Suspense>
+        </div>
       </div>
-
-      <section style={{ marginTop: 16, marginBottom: 24 }}>
-        <CreateProductModal />
-      </section>
 
       {products.length === 0 ? (
         <p>No products yet.</p>
       ) : (
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              <th align="left" style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Title</th>
-              <th align="left" style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Status</th>
-              <th align="left" style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Created</th>
-              <th align="left" style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.map((p: any) => (
-              <tr key={p.id}>
-                <td style={{ padding: 8, borderBottom: "1px solid #f3f4f6" }}>{p.title}</td>
-                <td style={{ padding: 8, borderBottom: "1px solid #f3f4f6" }}>
-                  <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 9999, background: p.status === "published" ? "#DCFCE7" : "#E5E7EB", color: "#065F46" }}>
-                    {p.status}
-                  </span>
-                </td>
-                <td style={{ padding: 8, borderBottom: "1px solid #f3f4f6" }}>{new Date(p.created_at).toLocaleString()}</td>
-                <td style={{ padding: 8, borderBottom: "1px solid #f3f4f6" }}>
-                  <a href={`/products/${p.id}`} style={{ marginRight: 12 }}>Edit</a>
-                  <ConfirmDeleteButton action={`/api/admin/products/${p.id}`} />
-                </td>
+        <div className="bg-white border rounded-lg shadow-sm overflow-auto max-h-[calc(100vh-18rem)]">
+          <table className="w-full">
+            <thead className="bg-gray-50 sticky top-0 z-10">
+              <tr>
+                <th className="text-left px-3 py-2 border-b">Title</th>
+                <th className="text-left px-3 py-2 border-b">Status</th>
+                <th className="text-left px-3 py-2 border-b">Created</th>
+                <th className="text-left px-3 py-2 border-b">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {products.map((p: any, i: number) => (
+                <tr key={p.id} className={i % 2 ? "bg-gray-50/40" : "bg-white hover:bg-gray-50"}>
+                  <td className="px-3 py-2 border-t">{p.title}</td>
+                  <td className="px-3 py-2 border-t">
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${p.status === "published" ? "bg-emerald-100 text-emerald-700" : "bg-gray-200 text-gray-700"}`}>
+                      {p.status}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 border-t">{new Date(p.created_at).toLocaleString()}</td>
+                  <td className="px-3 py-2 border-t">
+                    <a href={`/products/${p.id}`} className="text-cyan-700 hover:underline mr-3">Edit</a>
+                    <ConfirmDeleteButton action={`/api/admin/products/${p.id}`} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
-      <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 12 }}>
-        <a href={`/products?${new URLSearchParams({ q, offset: String(prevOffset) }).toString()}`} style={{ pointerEvents: hasPrev ? "auto" : "none", opacity: hasPrev ? 1 : 0.5 }}>Prev</a>
-        <a href={`/products?${new URLSearchParams({ q, offset: String(nextOffset) }).toString()}`} style={{ pointerEvents: hasNext ? "auto" : "none", opacity: hasNext ? 1 : 0.5 }}>Next</a>
-        <span style={{ marginLeft: 8, fontSize: 12, color: "#6b7280" }}>{offset + 1}-{Math.min(offset + limit, count)} of {count}</span>
+      <div className="flex items-center gap-2 mt-4">
+        <a href={`/products?${new URLSearchParams({ q, offset: String(prevOffset) }).toString()}`} className={hasPrev ? "text-gray-700" : "text-gray-400"}>Prev</a>
+        <a href={`/products?${new URLSearchParams({ q, offset: String(nextOffset) }).toString()}`} className={hasNext ? "text-gray-700" : "text-gray-400"}>Next</a>
+        <span className="ml-2 text-gray-600 text-sm">{offset + 1}-{Math.min(offset + limit, count)} of {count}</span>
       </div>
     </main>
   )

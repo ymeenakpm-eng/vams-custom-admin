@@ -47,57 +47,62 @@ export default async function CategoriesPage(props: any) {
   const hasPrev = offset > 0
 
   return (
-    <main style={{ padding: 32 }}>
-      <h1>Categories</h1>
-      <p style={{ marginTop: 8 }}><Link href="/products">← Back to products</Link></p>
-
-      <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 12, marginBottom: 12 }}>
-        <Suspense fallback={null}>
-          <SearchBox placeholder="Search categories" />
-        </Suspense>
-        <Suspense fallback={null}>
-          <CategorySortSelect />
-        </Suspense>
-        <Suspense fallback={null}>
-          <PageSizeSelect values={[10, 20, 50]} />
-        </Suspense>
+    <main className="max-w-5xl">
+      <div className="bg-white border rounded-lg p-4 shadow-sm mb-4">
+        <div className="flex items-center justify-between mb-3">
+          <h1 className="text-lg font-semibold">Categories</h1>
+          <Link href="/products" className="text-cyan-700 hover:underline text-sm">← Back to products</Link>
+        </div>
+        <div className="flex items-center gap-2">
+          <Suspense fallback={null}>
+            <SearchBox placeholder="Search categories" />
+          </Suspense>
+          <Suspense fallback={null}>
+            <CategorySortSelect />
+          </Suspense>
+          <Suspense fallback={null}>
+            <PageSizeSelect values={[10, 20, 50]} />
+          </Suspense>
+        </div>
       </div>
 
       <section style={{ marginTop: 16, marginBottom: 24 }}>
         <form method="POST" action="/api/admin/categories" style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <input name="name" placeholder="New category name" required />
-          <input name="handle" placeholder="handle (optional)" />
-          <button type="submit">Create</button>
+          <input name="name" placeholder="New category name" required className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
+          <input name="handle" placeholder="handle (optional)" className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
+          <button type="submit" className="bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-2 rounded-md text-sm shadow">Create</button>
         </form>
       </section>
 
       {categories.length === 0 ? (
         <p>No categories yet.</p>
       ) : (
-        <table>
-          <thead>
-            <tr>
-              <th align="left">Name</th>
-              <th align="left">Handle</th>
-              <th align="left">Created</th>
-            </tr>
-          </thead>
-          <tbody>
-            {categories.map((c: any) => (
-              <tr key={c.id}>
-                <td>{c.name}</td>
-                <td>{c.handle}</td>
-                <td>{new Date(c.created_at).toLocaleString()}</td>
+        <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="text-left px-3 py-2 border-b">Name</th>
+                <th className="text-left px-3 py-2 border-b">Handle</th>
+                <th className="text-left px-3 py-2 border-b">Created</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {categories.map((c: any, i: number) => (
+                <tr key={c.id} className={i % 2 ? "bg-gray-50/40" : "bg-white hover:bg-gray-50"}>
+                  <td className="px-3 py-2 border-t">{c.name}</td>
+                  <td className="px-3 py-2 border-t">{c.handle}</td>
+                  <td className="px-3 py-2 border-t">{new Date(c.created_at).toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
-      <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 12 }}>
-        <a href={`/categories?${new URLSearchParams({ q, offset: String(prevOffset) }).toString()}`} style={{ pointerEvents: hasPrev ? "auto" : "none", opacity: hasPrev ? 1 : 0.5 }}>Prev</a>
-        <a href={`/categories?${new URLSearchParams({ q, offset: String(nextOffset) }).toString()}`} style={{ pointerEvents: hasNext ? "auto" : "none", opacity: hasNext ? 1 : 0.5 }}>Next</a>
-        <span style={{ marginLeft: 8, fontSize: 12, color: "#6b7280" }}>{offset + 1}-{Math.min(offset + limit, count)} of {count}</span>
+      <div className="flex items-center gap-2 mt-4">
+        <a href={`/categories?${new URLSearchParams({ q, offset: String(prevOffset) }).toString()}`} className={hasPrev ? "text-gray-700" : "text-gray-400"}>Prev</a>
+        <a href={`/categories?${new URLSearchParams({ q, offset: String(nextOffset) }).toString()}`} className={hasNext ? "text-gray-700" : "text-gray-400"}>Next</a>
+        <span className="ml-2 text-gray-600 text-sm">{offset + 1}-{Math.min(offset + limit, count)} of {count}</span>
       </div>
     </main>
   )
