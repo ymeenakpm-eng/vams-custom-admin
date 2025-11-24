@@ -38,6 +38,17 @@ export default async function ProductsPage() {
     <main style={{ padding: 32 }}>
       <h1>Products</h1>
 
+      <section style={{ marginTop: 16, marginBottom: 24 }}>
+        <form method="POST" action="/api/admin/products" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <input name="title" placeholder="New product title" required />
+          <select name="status" defaultValue="published">
+            <option value="published">published</option>
+            <option value="draft">draft</option>
+          </select>
+          <button type="submit">Create</button>
+        </form>
+      </section>
+
       {products.length === 0 ? (
         <p>No products yet.</p>
       ) : (
@@ -47,6 +58,7 @@ export default async function ProductsPage() {
               <th align="left">Title</th>
               <th align="left">Status</th>
               <th align="left">Created</th>
+              <th align="left">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -55,6 +67,9 @@ export default async function ProductsPage() {
                 <td>{p.title}</td>
                 <td>{p.status}</td>
                 <td>{new Date(p.created_at).toLocaleString()}</td>
+                <td>
+                  <a href={`/products/${p.id}`}>Edit</a>
+                </td>
               </tr>
             ))}
           </tbody>

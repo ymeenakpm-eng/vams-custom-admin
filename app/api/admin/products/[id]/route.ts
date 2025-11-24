@@ -1,0 +1,108 @@
+import { NextResponse } from "next/server"
+
+function env() {
+  const base = process.env.MEDUSA_BACKEND_URL
+  const token = process.env.MEDUSA_ADMIN_TOKEN
+  if (!base || !token) throw new Error("MEDUSA_BACKEND_URL or MEDUSA_ADMIN_TOKEN missing")
+  return { base, token }
+}
+
+export async function GET(_req: Request, { params }: { params: { id: string } }) {
+  try {
+    const { base, token } = env()
+    const res = await fetch(`${base}/admin/products/${params.id}`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    })
+    const text = await res.text()
+    return new NextResponse(text, { status: res.status, headers: { "content-type": res.headers.get("content-type") || "application/json" } })
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || String(e) }, { status: 500 })
+  }
+}
+
+export async function POST(req: Request, { params }: { params: { id: string } }) {
+  try {
+    const { base, token } = env()
+
+    let body: any = {}
+    const ct = req.headers.get("content-type") || ""
+    if (ct.includes("application/json")) {
+      body = await req.json()
+    } else if (ct.includes("application/x-www-form-urlencoded")) {
+      const fd = await req.formData()
+      const intent = String(fd.get("intent") || "")
+      if (intent === "delete") {
+        const res = await fetch(`${base}/admin/products/${params.id}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+          cache: "no-store",
+        })
+        const referer = req.headers.get("referer") || ""
+        if (referer.includes(`/products/${params.id}`)) {
+          return NextResponse.redirect(new URL(`/products`, req.url))
+        }
+        const text = await res.text()
+        return new NextResponse(text, { status: res.status, headers: { "content-type": res.headers.get("content-type") || "application/json" } })
+      }
+      body = {
+        title: String(fd.get("title") || "").trim(),
+        status: String(fd.get("status") || "published"),
+        description: String(fd.get("description") || "").trim() || undefined,
+      }
+      const catIds = fd.getAll("category_ids")?.map(String).filter(Boolean)
+      if (catIds?.length) {
+        ;(body as any).category_ids = catIds
+      }
+    } else {
+      try { body = await req.json() } catch { body = {} }
+    }
+
+    const res = await fetch(`${base}/admin/products/${params.id}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      cache: "no-store",
+    })
+
+    const referer = req.headers.get("referer") || ""
+    if (!res.ok) {
+      const text = await res.text()
+      if (referer.includes("/products/")) {
+        return NextResponse.redirect(new URL(`/products/${params.id}?error=1`, req.url))
+      }
+      return NextResponse.json({ error: text }, { status: res.status })
+    }
+
+    if (referer.includes("/products/")) {
+      return NextResponse.redirect(new URL(`/products/${params.id}?saved=1`, req.url))
+    }
+
+    const text = await res.text()
+    return new NextResponse(text, { status: 200, headers: { "content-type": "application/json" } })
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || String(e) }, { status: 500 })
+  }
+}
+
+export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+  try {
+    const { base, token } = env()
+    const res = await fetch(`${base}/admin/products/${params.id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    })
+
+    const referer = req.headers.get("referer") || ""
+    if (referer.includes(`/products/${params.id}`)) {
+      return NextResponse.redirect(new URL(`/products`, req.url))
+    }
+
+    const text = await res.text()
+    return new NextResponse(text, { status: res.status, headers: { "content-type": res.headers.get("content-type") || "application/json" } })
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || String(e) }, { status: 500 })
+  }
+}
