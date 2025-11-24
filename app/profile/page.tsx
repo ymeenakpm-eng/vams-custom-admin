@@ -3,7 +3,7 @@ import { cookies } from "next/headers"
 export const dynamic = "force-dynamic"
 
 export default async function ProfilePage() {
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const name = cookieStore.get("admin_name")?.value || "Admin"
   const email = cookieStore.get("admin_email")?.value || ""
 
