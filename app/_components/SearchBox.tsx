@@ -31,6 +31,7 @@ export default function SearchBox({ name = "q", placeholder = "Search", debounce
       value={value}
       onChange={(e) => setValue(e.target.value)}
       placeholder={placeholder}
+      className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
     />
   )
 }

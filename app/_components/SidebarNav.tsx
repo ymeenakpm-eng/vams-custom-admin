@@ -8,7 +8,11 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
   return (
     <Link
       href={href}
-      className={`block px-3 py-2 rounded text-sm ${active ? "bg-gray-100 font-medium" : "hover:bg-gray-50"}`}
+      className={`block px-3 py-2 rounded-md text-sm ${
+        active
+          ? "bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200 font-medium"
+          : "text-gray-700 border border-transparent hover:border-gray-200 hover:bg-gray-50"
+      }`}
     >
       {children}
     </Link>

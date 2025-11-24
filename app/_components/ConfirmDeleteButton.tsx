@@ -11,7 +11,7 @@ export default function ConfirmDeleteButton({ action, label = "Delete" }: { acti
             e.preventDefault()
           }
         }}
-        style={{ color: "#e11d48" }}
+        className="border border-red-300 text-red-600 px-2 py-1 rounded text-sm hover:bg-red-50"
       >
         {label}
       </button>
