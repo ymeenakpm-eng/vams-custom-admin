@@ -4,6 +4,9 @@ import SortSelect from "../_components/SortSelect"
 import PageSizeSelect from "../_components/PageSizeSelect"
 import CreateProductModal from "../_components/CreateProductModal"
 
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 async function fetchProducts(params: { q?: string; offset?: number; limit?: number; sort?: string }) {
   const base = process.env.MEDUSA_BACKEND_URL
   const pubKey = process.env.MEDUSA_ADMIN_API_TOKEN
