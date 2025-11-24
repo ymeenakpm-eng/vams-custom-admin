@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Toaster from "./_components/Toaster";
 import SidebarNav from "./_components/SidebarNav";
+import { Suspense } from "react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,13 +32,17 @@ export default function RootLayout({
       >
         <div className="flex min-h-screen">
           <aside className="w-56 border-r bg-white sticky top-0 h-screen hidden md:block">
-            <SidebarNav />
+            <Suspense fallback={null}>
+              <SidebarNav />
+            </Suspense>
           </aside>
           <main className="flex-1 px-4 py-6 max-w-5xl">
             {children}
           </main>
         </div>
-        <Toaster />
+        <Suspense fallback={null}>
+          <Toaster />
+        </Suspense>
       </body>
     </html>
   );

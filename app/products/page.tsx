@@ -3,6 +3,7 @@ import ConfirmDeleteButton from "../_components/ConfirmDeleteButton"
 import SortSelect from "../_components/SortSelect"
 import PageSizeSelect from "../_components/PageSizeSelect"
 import CreateProductModal from "../_components/CreateProductModal"
+import { Suspense } from "react"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
@@ -69,9 +70,15 @@ export default async function ProductsPage(props: any) {
       <h1 style={{ fontWeight: 600, fontSize: 20 }}>Products</h1>
 
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 12, marginBottom: 12 }}>
-        <SearchBox placeholder="Search products" />
-        <SortSelect />
-        <PageSizeSelect values={[10, 20, 50]} />
+        <Suspense fallback={null}>
+          <SearchBox placeholder="Search products" />
+        </Suspense>
+        <Suspense fallback={null}>
+          <SortSelect />
+        </Suspense>
+        <Suspense fallback={null}>
+          <PageSizeSelect values={[10, 20, 50]} />
+        </Suspense>
       </div>
 
       <section style={{ marginTop: 16, marginBottom: 24 }}>
