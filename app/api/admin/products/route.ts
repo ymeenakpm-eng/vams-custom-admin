@@ -25,6 +25,18 @@ export async function POST(req: NextRequest) {
         title: String(fd.get("title") || "").trim(),
         status: String(fd.get("status") || "published"),
       }
+      const description = String(fd.get("description") || "").trim()
+      if (description) body.description = description
+      const catIds = fd.getAll("category_ids")?.map(String).filter(Boolean)
+      if (catIds && catIds.length) body.category_ids = catIds
+      // image_urls can be provided as multiple fields or comma/line separated in a single field
+      const rawMulti = fd.getAll("image_urls").map((v) => String(v))
+      const rawSingle = String(fd.get("image_url") || "")
+      const parts = [
+        ...rawMulti,
+        ...rawSingle.split(/[\n,]/g).map((s) => s.trim())
+      ].filter(Boolean)
+      if (parts.length) body.images = parts
     } else {
       // default: try json
       try {

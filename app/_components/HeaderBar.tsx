@@ -10,6 +10,8 @@ export default function HeaderBar() {
   const initial = useMemo(() => sp.get("q") || "", [sp])
   const [value, setValue] = useState(initial)
   const logoSrc = process.env.NEXT_PUBLIC_ADMIN_LOGO || "/vamsbiome.svg"
+  const [me, setMe] = useState<{ authenticated: boolean; email?: string; name?: string } | null>(null)
+  const [open, setOpen] = useState(false)
 
   useEffect(() => { setValue(initial) }, [initial])
 
@@ -31,6 +33,13 @@ export default function HeaderBar() {
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value])
+
+  useEffect(() => {
+    fetch("/api/auth/me", { cache: "no-store" })
+      .then((r) => r.json().catch(() => ({})))
+      .then((d) => setMe(d))
+      .catch(() => setMe(null))
+  }, [])
 
   const links: { href: string; label: string }[] = [
     { href: "/", label: "Home" },
@@ -72,8 +81,27 @@ export default function HeaderBar() {
             className="w-full bg-white/95 text-gray-800 placeholder-gray-500 px-3 py-1.5 rounded-md outline-none focus:ring-2 focus:ring-white/60 shadow-sm"
           />
         </div>
-        <div className="flex items-center gap-2">
-          <div className="rounded-full bg-white/20 hover:bg-white/25 px-3 py-1.5 text-[13px]">Admin</div>
+        <div className="relative">
+          <button
+            onClick={() => setOpen((v) => !v)}
+            className="rounded-full bg-white/20 hover:bg-white/25 px-3 py-1.5 text-[13px] min-w-24 text-left"
+          >
+            {me?.name || "Admin"}
+          </button>
+          {open && (
+            <div className="absolute right-0 mt-2 w-60 bg-white text-gray-900 rounded-md shadow-lg border overflow-hidden">
+              <div className="px-3 py-2 border-b">
+                <div className="text-sm font-medium">{me?.name || "Admin"}</div>
+                <div className="text-xs text-gray-600 truncate">{me?.email || ""}</div>
+              </div>
+              <div className="p-2 space-y-1">
+                <Link href="/profile" className="block w-full text-left px-3 py-2 rounded hover:bg-gray-50 text-sm">Profile</Link>
+                <form method="POST" action="/api/auth/logout">
+                  <button className="w-full text-left px-3 py-2 rounded hover:bg-gray-50 text-sm text-red-600">Sign out</button>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </header>

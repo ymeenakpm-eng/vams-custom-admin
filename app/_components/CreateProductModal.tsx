@@ -1,5 +1,6 @@
 "use client"
 import { useState } from "react"
+import CategoryMultiSelect from "./CategoryMultiSelect"
 
 export default function CreateProductModal() {
   const [open, setOpen] = useState(false)
@@ -33,6 +34,11 @@ export default function CreateProductModal() {
               <label>
                 <div>Description</div>
                 <textarea name="description" rows={3} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
+              </label>
+              <CategoryMultiSelect />
+              <label>
+                <div>Images (URLs)</div>
+                <textarea name="image_urls" rows={3} placeholder="One per line or comma-separated" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
               </label>
               <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                 <button type="button" onClick={() => setOpen(false)} className="border border-gray-300 text-gray-700 px-3 py-2 rounded-md text-sm hover:bg-gray-50">Cancel</button>

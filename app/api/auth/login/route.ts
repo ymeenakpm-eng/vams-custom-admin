@@ -15,6 +15,9 @@ export async function POST(req: Request) {
       path: "/",
       maxAge: 60 * 60 * 8, // 8h
     })
+    const name = email?.split("@")[0] || "Admin"
+    res.cookies.set("admin_email", email || "", { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 8 })
+    res.cookies.set("admin_name", name, { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 8 })
     return res
   }
 

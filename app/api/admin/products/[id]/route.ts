@@ -58,6 +58,17 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
       if (catIds?.length) {
         ;(body as any).category_ids = catIds
       }
+      // images: accept multiple image_urls fields and/or a combined textarea
+      const rawMulti = fd.getAll("image_urls").map((v) => String(v))
+      const rawSingle = String(fd.get("image_url") || "")
+      const parts = [
+        ...rawMulti,
+        ...rawSingle.split(/[\n,]/g).map((s) => s.trim()),
+      ].filter(Boolean)
+      if (parts.length) {
+        ;(body as any).images = parts
+        ;(body as any).thumbnail = parts[0]
+      }
     } else {
       try { body = await req.json() } catch { body = {} }
     }
