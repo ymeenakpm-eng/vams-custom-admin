@@ -1,4 +1,4 @@
-async function fetchProducts() {
+async function fetchProducts(params: { q?: string; offset?: number; limit?: number }) {
   const base = process.env.MEDUSA_BACKEND_URL
   const pubKey = process.env.MEDUSA_ADMIN_API_TOKEN
 
@@ -10,8 +10,11 @@ async function fetchProducts() {
   }
 
   const url = new URL(`${base}/store/products`)
-  url.searchParams.set("limit", "100")
-  url.searchParams.set("offset", "0")
+  const limit = params.limit ?? 20
+  const offset = params.offset ?? 0
+  if (params.q) url.searchParams.set("q", params.q)
+  url.searchParams.set("limit", String(limit))
+  url.searchParams.set("offset", String(offset))
 
   const res = await fetch(url.toString(), {
     method: "GET",
@@ -28,15 +31,28 @@ async function fetchProducts() {
   }
 
   const data = await res.json()
-  return data.products ?? []
+  return { products: data.products ?? [], count: data.count ?? (data.products?.length || 0), limit, offset, q: params.q || "" }
 }
 
-export default async function ProductsPage() {
-  const products = await fetchProducts()
+export default async function ProductsPage(props: any) {
+  const sp: Record<string, string> = (await (props?.searchParams ?? {})) as any
+  const q = (sp?.q as string) || ""
+  const offset = Number(sp?.offset || 0) || 0
+  const limit = 20
+  const { products, count } = await fetchProducts({ q, offset, limit })
+  const nextOffset = offset + limit
+  const prevOffset = Math.max(0, offset - limit)
+  const hasNext = nextOffset < count
+  const hasPrev = offset > 0
 
   return (
-    <main style={{ padding: 32 }}>
-      <h1>Products</h1>
+    <main>
+      <h1 style={{ fontWeight: 600, fontSize: 20 }}>Products</h1>
+
+      <form method="GET" action="/products" style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 12, marginBottom: 12 }}>
+        <input name="q" placeholder="Search products" defaultValue={q} />
+        <button type="submit">Search</button>
+      </form>
 
       <section style={{ marginTop: 16, marginBottom: 24 }}>
         <form method="POST" action="/api/admin/products" style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -52,29 +68,39 @@ export default async function ProductsPage() {
       {products.length === 0 ? (
         <p>No products yet.</p>
       ) : (
-        <table>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              <th align="left">Title</th>
-              <th align="left">Status</th>
-              <th align="left">Created</th>
-              <th align="left">Actions</th>
+              <th align="left" style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Title</th>
+              <th align="left" style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Status</th>
+              <th align="left" style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Created</th>
+              <th align="left" style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {products.map((p: any) => (
               <tr key={p.id}>
-                <td>{p.title}</td>
-                <td>{p.status}</td>
-                <td>{new Date(p.created_at).toLocaleString()}</td>
-                <td>
-                  <a href={`/products/${p.id}`}>Edit</a>
+                <td style={{ padding: 8, borderBottom: "1px solid #f3f4f6" }}>{p.title}</td>
+                <td style={{ padding: 8, borderBottom: "1px solid #f3f4f6" }}>{p.status}</td>
+                <td style={{ padding: 8, borderBottom: "1px solid #f3f4f6" }}>{new Date(p.created_at).toLocaleString()}</td>
+                <td style={{ padding: 8, borderBottom: "1px solid #f3f4f6" }}>
+                  <a href={`/products/${p.id}`} style={{ marginRight: 8 }}>Edit</a>
+                  <form method="POST" action={`/api/admin/products/${p.id}`} style={{ display: "inline" }}>
+                    <input type="hidden" name="intent" value="delete" />
+                    <button type="submit" style={{ color: "#e11d48" }}>Delete</button>
+                  </form>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       )}
+
+      <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 12 }}>
+        <a href={`/products?${new URLSearchParams({ q, offset: String(prevOffset) }).toString()}`} style={{ pointerEvents: hasPrev ? "auto" : "none", opacity: hasPrev ? 1 : 0.5 }}>Prev</a>
+        <a href={`/products?${new URLSearchParams({ q, offset: String(nextOffset) }).toString()}`} style={{ pointerEvents: hasNext ? "auto" : "none", opacity: hasNext ? 1 : 0.5 }}>Next</a>
+        <span style={{ marginLeft: 8, fontSize: 12, color: "#6b7280" }}>{offset + 1}-{Math.min(offset + limit, count)} of {count}</span>
+      </div>
     </main>
   )
 }
