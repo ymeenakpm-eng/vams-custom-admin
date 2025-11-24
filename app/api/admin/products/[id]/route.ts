@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 
 function env() {
   const base = process.env.MEDUSA_BACKEND_URL
@@ -7,10 +8,11 @@ function env() {
   return { base, token }
 }
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const { base, token } = env()
-    const res = await fetch(`${base}/admin/products/${params.id}`, {
+    const { id } = await context.params
+    const res = await fetch(`${base}/admin/products/${id}`, {
       method: "GET",
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
@@ -22,7 +24,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   }
 }
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const { base, token } = env()
 
@@ -34,13 +36,14 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       const fd = await req.formData()
       const intent = String(fd.get("intent") || "")
       if (intent === "delete") {
-        const res = await fetch(`${base}/admin/products/${params.id}`, {
+        const { id } = await context.params
+        const res = await fetch(`${base}/admin/products/${id}`, {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
           cache: "no-store",
         })
         const referer = req.headers.get("referer") || ""
-        if (referer.includes(`/products/${params.id}`)) {
+        if (referer.includes(`/products/${id}`)) {
           return NextResponse.redirect(new URL(`/products`, req.url))
         }
         const text = await res.text()
@@ -59,7 +62,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       try { body = await req.json() } catch { body = {} }
     }
 
-    const res = await fetch(`${base}/admin/products/${params.id}`, {
+    const { id } = await context.params
+    const res = await fetch(`${base}/admin/products/${id}`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -70,13 +74,13 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     if (!res.ok) {
       const text = await res.text()
       if (referer.includes("/products/")) {
-        return NextResponse.redirect(new URL(`/products/${params.id}?error=1`, req.url))
+        return NextResponse.redirect(new URL(`/products/${id}?error=1`, req.url))
       }
       return NextResponse.json({ error: text }, { status: res.status })
     }
 
     if (referer.includes("/products/")) {
-      return NextResponse.redirect(new URL(`/products/${params.id}?saved=1`, req.url))
+      return NextResponse.redirect(new URL(`/products/${id}?saved=1`, req.url))
     }
 
     const text = await res.text()
@@ -86,17 +90,18 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const { base, token } = env()
-    const res = await fetch(`${base}/admin/products/${params.id}`, {
+    const { id } = await context.params
+    const res = await fetch(`${base}/admin/products/${id}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
     })
 
     const referer = req.headers.get("referer") || ""
-    if (referer.includes(`/products/${params.id}`)) {
+    if (referer.includes(`/products/${id}`)) {
       return NextResponse.redirect(new URL(`/products`, req.url))
     }
 

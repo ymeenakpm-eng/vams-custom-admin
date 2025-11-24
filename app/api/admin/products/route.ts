@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 
 function requireEnv() {
   const base = process.env.MEDUSA_BACKEND_URL
@@ -9,7 +10,7 @@ function requireEnv() {
   return { base, token }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const { base, token } = requireEnv()
 

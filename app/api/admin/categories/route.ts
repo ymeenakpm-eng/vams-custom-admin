@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 
 function env() {
   const base = process.env.MEDUSA_BACKEND_URL
@@ -7,7 +8,7 @@ function env() {
   return { base, token }
 }
 
-export async function GET() {
+export async function GET(_req: NextRequest) {
   try {
     const { base, token } = env()
     const res = await fetch(`${base}/admin/product-categories`, {
@@ -22,7 +23,7 @@ export async function GET() {
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const { base, token } = env()
 
