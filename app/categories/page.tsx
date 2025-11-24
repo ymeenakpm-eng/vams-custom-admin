@@ -8,24 +8,29 @@ export const dynamic = "force-dynamic"
 export const revalidate = 0
 
 async function fetchCategories(params: { q?: string; offset?: number; limit?: number; sort?: string }) {
-  const base = process.env.NEXT_PUBLIC_BASE_URL ?? ""
-  const qs = new URLSearchParams()
-  if (params.q) qs.set("q", params.q)
-  if (params.limit != null) qs.set("limit", String(params.limit))
-  if (params.offset != null) qs.set("offset", String(params.offset))
-  if (params.sort) qs.set("sort", params.sort)
-  const url = `${base}/api/admin/categories?${qs.toString()}`
-  const res = await fetch(url, { cache: "no-store" })
-  if (!res.ok) {
-    const text = await res.text().catch(() => "")
-    throw new Error(`Failed to fetch categories: ${res.status} ${text}`)
+  try {
+    const base = (process.env.NEXT_PUBLIC_BASE_URL && process.env.NEXT_PUBLIC_BASE_URL.trim())
+      || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "")
+    const qs = new URLSearchParams()
+    if (params.q) qs.set("q", params.q)
+    if (params.limit != null) qs.set("limit", String(params.limit))
+    if (params.offset != null) qs.set("offset", String(params.offset))
+    if (params.sort) qs.set("sort", params.sort)
+    const resolvedBase = base || "http://localhost:3000"
+    const url = `${resolvedBase}/api/admin/categories?${qs.toString()}`
+    const res = await fetch(url, { cache: "no-store" })
+    if (!res.ok) {
+      return { categories: [] as any[], count: 0, limit: params.limit ?? 20, offset: params.offset ?? 0 }
+    }
+    const data = await res.json().catch(() => ({ product_categories: [], count: 0 }))
+    const cats = data.product_categories ?? []
+    const count = typeof data.count === "number" ? data.count : cats.length
+    const limit = params.limit ?? 20
+    const offset = params.offset ?? 0
+    return { categories: cats, count, limit, offset }
+  } catch {
+    return { categories: [] as any[], count: 0, limit: params.limit ?? 20, offset: params.offset ?? 0 }
   }
-  const data = await res.json().catch(() => ({ product_categories: [], count: 0 }))
-  const cats = data.product_categories ?? []
-  const count = typeof data.count === "number" ? data.count : cats.length
-  const limit = params.limit ?? 20
-  const offset = params.offset ?? 0
-  return { categories: cats, count, limit, offset }
 }
 
 export default async function CategoriesPage(props: any) {
