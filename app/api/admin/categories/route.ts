@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
       try { body = await req.json() } catch { body = {} }
     }
 
-    const res = await fetch(`${base}/admin/product-categories`, {
+    let res = await fetch(`${base}/admin/product-categories`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -82,18 +82,37 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(body),
       cache: "no-store",
     })
+    if (res.status === 401) {
+      try {
+        const basic = Buffer.from(`${token}:`).toString("base64")
+        const resBasic = await fetch(`${base}/admin/product-categories`, {
+          method: "POST",
+          headers: { Authorization: `Basic ${basic}`, "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+          cache: "no-store",
+        })
+        if (resBasic.status !== 401) res = resBasic
+      } catch {}
+    }
 
     const referer = req.headers.get("referer") || ""
     if (!res.ok) {
       const text = await res.text()
       if (referer.includes("/categories")) {
-        return NextResponse.redirect(new URL(`/categories?error=1`, req.url))
+        let msg = ""
+        try { msg = JSON.parse(text)?.message || "" } catch { msg = text || "" }
+        const u = new URL(`/categories`, req.url)
+        u.searchParams.set("error", "1")
+        if (msg) u.searchParams.set("msg", String(msg).slice(0, 160))
+        return NextResponse.redirect(u)
       }
       return NextResponse.json({ error: text }, { status: res.status })
     }
 
     if (referer.includes("/categories")) {
-      return NextResponse.redirect(new URL(`/categories?saved=1`, req.url))
+      const u = new URL(`/categories`, req.url)
+      u.searchParams.set("saved", "1")
+      return NextResponse.redirect(u)
     }
 
     const text = await res.text()

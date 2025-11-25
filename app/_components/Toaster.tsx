@@ -15,6 +15,7 @@ export default function Toaster() {
       saved: sp.get("saved"),
       deleted: sp.get("deleted"),
       error: sp.get("error"),
+      msg: sp.get("msg"),
     }
   }, [sp])
 
@@ -22,17 +23,17 @@ export default function Toaster() {
     let m: string | null = null
     let v: "success" | "error" = "success"
     if (flags.error) {
-      m = "Something went wrong"
+      m = flags.msg || "Something went wrong"
       v = "error"
-    } else if (flags.created) m = "Created successfully"
-    else if (flags.saved) m = "Saved successfully"
-    else if (flags.deleted) m = "Deleted successfully"
+    } else if (flags.created) m = flags.msg || "Created successfully"
+    else if (flags.saved) m = flags.msg || "Saved successfully"
+    else if (flags.deleted) m = flags.msg || "Deleted successfully"
 
     if (m) {
       setMsg(m)
       setVariant(v)
       const params = new URLSearchParams(sp.toString())
-      params.delete("created"); params.delete("saved"); params.delete("deleted"); params.delete("error")
+      params.delete("created"); params.delete("saved"); params.delete("deleted"); params.delete("error"); params.delete("msg")
       router.replace(`${pathname}?${params.toString()}`)
       const t = setTimeout(() => setMsg(null), 2500)
       return () => clearTimeout(t)

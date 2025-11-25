@@ -167,14 +167,21 @@ export async function POST(req: NextRequest) {
     const text = await res.text()
     if (!res.ok) {
       if (referer.includes("/products")) {
-        return NextResponse.redirect(new URL(`/products?error=1`, req.url))
+        let msg = ""
+        try { msg = JSON.parse(text)?.message || "" } catch { msg = text || "" }
+        const u = new URL(`/products`, req.url)
+        u.searchParams.set("error", "1")
+        if (msg) u.searchParams.set("msg", String(msg).slice(0, 160))
+        return NextResponse.redirect(u)
       }
       return NextResponse.json({ error: text }, { status: res.status })
     }
 
     // If came from a form submit, redirect back to /products with toast flag
     if (referer.includes("/products")) {
-      return NextResponse.redirect(new URL("/products?created=1", req.url))
+      const u = new URL("/products", req.url)
+      u.searchParams.set("created", "1")
+      return NextResponse.redirect(u)
     }
 
     return new NextResponse(text, { status: 200, headers: { "content-type": "application/json" } })
