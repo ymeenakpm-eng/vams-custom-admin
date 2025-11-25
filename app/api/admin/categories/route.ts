@@ -37,7 +37,12 @@ export async function GET(req: NextRequest) {
 
     const res = await fetch(url.toString(), {
       method: "GET",
-      headers: { Authorization: `Bearer ${token}`, "x-medusa-access-token": token },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "x-medusa-access-token": token,
+        "x-medusa-api-key": token,
+        "x-api-key": token,
+      },
       cache: "no-store",
     })
     const text = await res.text()
@@ -67,7 +72,13 @@ export async function POST(req: NextRequest) {
 
     const res = await fetch(`${base}/admin/product-categories`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "x-medusa-access-token": token, "Content-Type": "application/json" },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "x-medusa-access-token": token,
+        "x-medusa-api-key": token,
+        "x-api-key": token,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify(body),
       cache: "no-store",
     })

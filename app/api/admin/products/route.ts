@@ -49,7 +49,12 @@ export async function GET(req: NextRequest) {
 
     let res = await fetch(url.toString(), {
       method: "GET",
-      headers: { Authorization: `Bearer ${token}`, "x-medusa-access-token": token },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "x-medusa-access-token": token,
+        "x-medusa-api-key": token,
+        "x-api-key": token,
+      },
       cache: "no-store",
     })
     if (res.status === 401) {
@@ -110,6 +115,8 @@ export async function POST(req: NextRequest) {
       headers: {
         Authorization: `Bearer ${token}`,
         "x-medusa-access-token": token,
+        "x-medusa-api-key": token,
+        "x-api-key": token,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
