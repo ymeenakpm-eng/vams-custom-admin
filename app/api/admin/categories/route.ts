@@ -2,8 +2,10 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
 function env() {
-  const base = process.env.MEDUSA_BACKEND_URL
-  const token = process.env.MEDUSA_ADMIN_TOKEN || process.env.MEDUSA_ADMIN_API_TOKEN
+  const baseRaw = process.env.MEDUSA_BACKEND_URL || ""
+  const tokenRaw = process.env.MEDUSA_ADMIN_TOKEN || process.env.MEDUSA_ADMIN_API_TOKEN || ""
+  const base = baseRaw.trim().replace(/\/+$/, "")
+  const token = tokenRaw.trim()
   if (!base || !token) throw new Error("MEDUSA_BACKEND_URL or MEDUSA_ADMIN_TOKEN missing")
   return { base, token }
 }
