@@ -10,16 +10,13 @@ export const revalidate = 0
 
 async function fetchProducts(params: { q?: string; offset?: number; limit?: number; sort?: string }) {
   const base = process.env.MEDUSA_BACKEND_URL
-  const pubKey = process.env.MEDUSA_ADMIN_API_TOKEN
+  const adminToken = process.env.MEDUSA_ADMIN_TOKEN
 
-  console.log("Using MEDUSA_BACKEND_URL:", base)
-  console.log("Using publishable key prefix:", pubKey?.slice(0, 8))
-
-  if (!base || !pubKey) {
-    throw new Error("MEDUSA_BACKEND_URL or MEDUSA_ADMIN_API_TOKEN missing")
+  if (!base || !adminToken) {
+    throw new Error("MEDUSA_BACKEND_URL or MEDUSA_ADMIN_TOKEN missing")
   }
 
-  const url = new URL(`${base}/store/products`)
+  const url = new URL(`${base}/admin/products`)
   const limit = params.limit ?? 20
   const offset = params.offset ?? 0
   if (params.q) url.searchParams.set("q", params.q)
@@ -37,7 +34,7 @@ async function fetchProducts(params: { q?: string; offset?: number; limit?: numb
   const res = await fetch(url.toString(), {
     method: "GET",
     headers: {
-      "x-publishable-api-key": pubKey,
+      Authorization: `Bearer ${adminToken}`,
       "Content-Type": "application/json",
     },
     cache: "no-store",
