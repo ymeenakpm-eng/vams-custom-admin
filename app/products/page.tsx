@@ -9,43 +9,33 @@ export const dynamic = "force-dynamic"
 export const revalidate = 0
 
 async function fetchProducts(params: { q?: string; offset?: number; limit?: number; sort?: string }) {
-  const base = process.env.MEDUSA_BACKEND_URL
-  const adminToken = process.env.MEDUSA_ADMIN_TOKEN
+  const base = (process.env.NEXT_PUBLIC_BASE_URL && process.env.NEXT_PUBLIC_BASE_URL.trim())
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "")
 
-  if (!base || !adminToken) {
-    throw new Error("MEDUSA_BACKEND_URL or MEDUSA_ADMIN_TOKEN missing")
-  }
-
-  const url = new URL(`${base}/admin/products`)
   const limit = params.limit ?? 20
   const offset = params.offset ?? 0
-  if (params.q) url.searchParams.set("q", params.q)
+  const qs = new URLSearchParams()
+  if (params.q) qs.set("q", params.q)
+  qs.set("limit", String(limit))
+  qs.set("offset", String(offset))
   const sort = params.sort || "created_desc"
-  // Medusa Store API supports order via "order" param in some versions; otherwise we sort client-side minimally.
-  // We'll request latest-first by default via updated_at/created_at where available.
-  if (sort === "created_asc") url.searchParams.set("order", "created_at")
-  else if (sort === "created_desc") url.searchParams.set("order", "-created_at")
-  else if (sort === "title_asc") url.searchParams.set("order", "title")
-  else if (sort === "title_desc") url.searchParams.set("order", "-title")
+  let order = ""
+  if (sort === "created_asc") order = "created_at"
+  else if (sort === "created_desc") order = "-created_at"
+  else if (sort === "title_asc") order = "title"
+  else if (sort === "title_desc") order = "-title"
+  if (order) qs.set("order", order)
 
-  url.searchParams.set("limit", String(limit))
-  url.searchParams.set("offset", String(offset))
-
-  const res = await fetch(url.toString(), {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${adminToken}`,
-      "Content-Type": "application/json",
-    },
-    cache: "no-store",
-  })
+  const resolvedBase = base || "http://localhost:3000"
+  const url = `${resolvedBase}/api/admin/products?${qs.toString()}`
+  const res = await fetch(url, { cache: "no-store" })
 
   if (!res.ok) {
     const text = await res.text()
     throw new Error(`Failed to fetch products: ${res.status} ${text}`)
   }
 
-  const data = await res.json()
+  const data = await res.json().catch(() => ({ products: [], count: 0 }))
   return { products: data.products ?? [], count: data.count ?? (data.products?.length || 0), limit, offset, q: params.q || "" }
 }
 

@@ -3,11 +3,39 @@ import type { NextRequest } from "next/server"
 
 function requireEnv() {
   const base = process.env.MEDUSA_BACKEND_URL
-  const token = process.env.MEDUSA_ADMIN_TOKEN
+  const token = process.env.MEDUSA_ADMIN_TOKEN || process.env.MEDUSA_ADMIN_API_TOKEN
   if (!base || !token) {
     throw new Error("MEDUSA_BACKEND_URL or MEDUSA_ADMIN_TOKEN missing")
   }
   return { base, token }
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const { base, token } = requireEnv()
+    const sp = req.nextUrl.searchParams
+    const url = new URL(`${base}/admin/products`)
+
+    // Pass through common query params
+    const q = sp.get("q") || ""
+    const limit = sp.get("limit") || ""
+    const offset = sp.get("offset") || ""
+    const order = sp.get("order") || ""
+    if (q) url.searchParams.set("q", q)
+    if (limit) url.searchParams.set("limit", limit)
+    if (offset) url.searchParams.set("offset", offset)
+    if (order) url.searchParams.set("order", order)
+
+    const res = await fetch(url.toString(), {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}`, "x-medusa-access-token": token },
+      cache: "no-store",
+    })
+    const text = await res.text()
+    return new NextResponse(text, { status: res.status, headers: { "content-type": res.headers.get("content-type") || "application/json" } })
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || String(e) }, { status: 500 })
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -50,6 +78,7 @@ export async function POST(req: NextRequest) {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
+        "x-medusa-access-token": token,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),

@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server"
 
 function env() {
   const base = process.env.MEDUSA_BACKEND_URL
-  const token = process.env.MEDUSA_ADMIN_TOKEN
+  const token = process.env.MEDUSA_ADMIN_TOKEN || process.env.MEDUSA_ADMIN_API_TOKEN
   if (!base || !token) throw new Error("MEDUSA_BACKEND_URL or MEDUSA_ADMIN_TOKEN missing")
   return { base, token }
 }
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
 
     const res = await fetch(url.toString(), {
       method: "GET",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${token}`, "x-medusa-access-token": token },
       cache: "no-store",
     })
     const text = await res.text()
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
 
     const res = await fetch(`${base}/admin/product-categories`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${token}`, "x-medusa-access-token": token, "Content-Type": "application/json" },
       body: JSON.stringify(body),
       cache: "no-store",
     })
