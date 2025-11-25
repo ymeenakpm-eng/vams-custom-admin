@@ -10,6 +10,25 @@ function requireEnv() {
   return { base, token }
 }
 
+async function loginAndGetCookie(base: string): Promise<string | null> {
+  const email = process.env.MEDUSA_ADMIN_EMAIL || process.env.ADMIN_UI_EMAIL
+  const password = process.env.MEDUSA_ADMIN_PASSWORD || process.env.ADMIN_UI_PASSWORD
+  if (!email || !password) return null
+  try {
+    const res = await fetch(`${base}/admin/auth`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email, password }),
+      cache: "no-store",
+    })
+    if (!res.ok) return null
+    const cookie = res.headers.get("set-cookie")
+    return cookie || null
+  } catch {
+    return null
+  }
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { base, token } = requireEnv()
@@ -26,11 +45,21 @@ export async function GET(req: NextRequest) {
     if (offset) url.searchParams.set("offset", offset)
     if (order) url.searchParams.set("order", order)
 
-    const res = await fetch(url.toString(), {
+    let res = await fetch(url.toString(), {
       method: "GET",
       headers: { Authorization: `Bearer ${token}`, "x-medusa-access-token": token },
       cache: "no-store",
     })
+    if (res.status === 401) {
+      const cookie = await loginAndGetCookie(base)
+      if (cookie) {
+        res = await fetch(url.toString(), {
+          method: "GET",
+          headers: { cookie },
+          cache: "no-store",
+        })
+      }
+    }
     const text = await res.text()
     return new NextResponse(text, { status: res.status, headers: { "content-type": res.headers.get("content-type") || "application/json" } })
   } catch (e: any) {
@@ -74,7 +103,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const res = await fetch(`${base}/admin/products`, {
+    let res = await fetch(`${base}/admin/products`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -84,6 +113,20 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(body),
       cache: "no-store",
     })
+    if (res.status === 401) {
+      const cookie = await loginAndGetCookie(base)
+      if (cookie) {
+        res = await fetch(`${base}/admin/products`, {
+          method: "POST",
+          headers: {
+            cookie,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+          cache: "no-store",
+        })
+      }
+    }
 
     const referer = req.headers.get("referer") || ""
     const text = await res.text()
