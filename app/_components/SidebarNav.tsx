@@ -20,19 +20,9 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
 }
 
 export default function SidebarNav() {
-  const logoSrc = process.env.NEXT_PUBLIC_ADMIN_LOGO || "/vams-biome-logo.png"
   return (
     <div className="h-full flex flex-col">
-      <div className="px-3 py-4 border-b">
-        <div className="flex items-center gap-3">
-          <img src={logoSrc} alt="VAMS Biome" className="h-8 w-auto object-contain" />
-          <div>
-            <div className="text-sm font-semibold leading-tight">VAMS BIOME</div>
-            <div className="text-xs text-gray-500">Admin</div>
-          </div>
-        </div>
-      </div>
-      <nav className="p-2 space-y-1 flex-1">
+      <nav className="p-3 space-y-1 flex-1">
         <NavLink href="/products">Products</NavLink>
         <NavLink href="/orders">Orders</NavLink>
         <NavLink href="/categories">Categories</NavLink>

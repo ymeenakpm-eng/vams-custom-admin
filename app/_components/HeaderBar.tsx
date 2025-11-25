@@ -51,12 +51,12 @@ export default function HeaderBar() {
 
   return (
     <header className="sticky top-0 z-40 bg-gradient-to-r from-cyan-500 via-sky-500 to-violet-500 text-white shadow">
-      <div className="h-12 max-w-5xl mx-auto px-4 flex items-center justify-between gap-3">
+      <div className="h-12 w-full px-4 flex items-center justify-between gap-3">
         <Link href="/products" className="flex items-center gap-2">
           <img src={logoSrc} alt="VAMS Biome" className="h-7 w-auto object-contain" />
-          <div className="hidden sm:block">
-            <div className="text-sm font-semibold leading-tight">VAMS BIOME</div>
-            <div className="text-xs opacity-90 -mt-0.5">Admin</div>
+          <div className="text-sm sm:text-base font-semibold leading-none">
+            <span className="mr-1">VAMS</span>
+            <span className="font-normal opacity-90">Admin</span>
           </div>
         </Link>
         <nav className="hidden md:flex items-center gap-1">
