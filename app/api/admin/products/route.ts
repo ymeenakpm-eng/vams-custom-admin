@@ -58,6 +58,17 @@ export async function GET(req: NextRequest) {
       cache: "no-store",
     })
     if (res.status === 401) {
+      try {
+        const basic = Buffer.from(`${token}:`).toString("base64")
+        const resBasic = await fetch(url.toString(), {
+          method: "GET",
+          headers: { Authorization: `Basic ${basic}` },
+          cache: "no-store",
+        })
+        if (resBasic.status !== 401) {
+          res = resBasic
+        }
+      } catch {}
       const cookie = await loginAndGetCookie(base)
       if (cookie) {
         res = await fetch(url.toString(), {
@@ -123,6 +134,21 @@ export async function POST(req: NextRequest) {
       cache: "no-store",
     })
     if (res.status === 401) {
+      try {
+        const basic = Buffer.from(`${token}:`).toString("base64")
+        const resBasic = await fetch(`${base}/admin/products`, {
+          method: "POST",
+          headers: {
+            Authorization: `Basic ${basic}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+          cache: "no-store",
+        })
+        if (resBasic.status !== 401) {
+          res = resBasic
+        }
+      } catch {}
       const cookie = await loginAndGetCookie(base)
       if (cookie) {
         res = await fetch(`${base}/admin/products`, {
