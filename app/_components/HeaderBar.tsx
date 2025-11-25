@@ -53,7 +53,7 @@ export default function HeaderBar() {
     <header className="sticky top-0 z-40 bg-gradient-to-r from-cyan-500 via-sky-500 to-violet-500 text-white shadow">
       <div className="h-12 max-w-5xl mx-auto px-4 flex items-center justify-between gap-3">
         <Link href="/products" className="flex items-center gap-2">
-          <img src={logoSrc} alt="VAMS Biome" className="h-7 w-7 rounded shadow" />
+          <img src={logoSrc} alt="VAMS Biome" className="h-7 w-auto object-contain" />
           <div className="hidden sm:block">
             <div className="text-sm font-semibold leading-tight">VAMS BIOME</div>
             <div className="text-xs opacity-90 -mt-0.5">Admin</div>
