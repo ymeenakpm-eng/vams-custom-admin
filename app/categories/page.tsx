@@ -64,6 +64,16 @@ export default async function CategoriesPage(props: any) {
             <PageSizeSelect values={[10, 20, 50]} />
           </Suspense>
         </div>
+        {sp?.saved === "1" && (
+          <div className="mt-3 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-3 py-2">
+            Category created successfully.
+          </div>
+        )}
+        {sp?.error === "1" && (
+          <div className="mt-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2">
+            Failed to create category. Please try again.
+          </div>
+        )}
       </div>
 
       <section style={{ marginTop: 16, marginBottom: 24 }}>

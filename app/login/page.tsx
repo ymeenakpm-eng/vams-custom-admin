@@ -7,21 +7,25 @@ export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
   const router = useRouter()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError("")
+    setLoading(true)
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
+      credentials: "include",
     })
     if (res.ok) {
-      router.push("/products")
+      window.location.href = "/products"
     } else {
       const data = await res.json().catch(() => ({}))
       setError(data.message || "Invalid credentials")
+      setLoading(false)
     }
   }
 
@@ -53,7 +57,9 @@ export default function LoginPage() {
             />
           </label>
           {error && <p className="text-sm text-red-600">{error}</p>}
-          <button type="submit" className="bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-2 rounded-md text-sm mt-1">Log in</button>
+          <button type="submit" disabled={loading} className="bg-cyan-500 hover:bg-cyan-600 disabled:opacity-60 text-white px-3 py-2 rounded-md text-sm mt-1">
+            {loading ? "Signing in..." : "Log in"}
+          </button>
         </form>
       </div>
     </main>

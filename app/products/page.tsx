@@ -48,6 +48,7 @@ export default async function ProductsPage(props: any) {
   let products: any[] = []
   let count = 0
   let errorMessage = ""
+
   try {
     const result = await fetchProducts({ q, offset, limit, sort })
     products = result.products
@@ -79,6 +80,16 @@ export default async function ProductsPage(props: any) {
             <PageSizeSelect values={[10, 20, 50]} />
           </Suspense>
         </div>
+        {sp?.created === "1" && (
+          <div className="mt-3 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-3 py-2">
+            Product added successfully.
+          </div>
+        )}
+        {sp?.error === "1" && (
+          <div className="mt-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2">
+            Failed to create product. Please try again.
+          </div>
+        )}
         {errorMessage && (
           <div className="mt-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2">
             {errorMessage}
