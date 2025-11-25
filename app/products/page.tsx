@@ -45,7 +45,16 @@ export default async function ProductsPage(props: any) {
   const offset = Number(sp?.offset || 0) || 0
   const limit = Number(sp?.limit || 20) || 20
   const sort = (sp?.sort as string) || "created_desc"
-  const { products, count } = await fetchProducts({ q, offset, limit, sort })
+  let products: any[] = []
+  let count = 0
+  let errorMessage = ""
+  try {
+    const result = await fetchProducts({ q, offset, limit, sort })
+    products = result.products
+    count = result.count
+  } catch (e: any) {
+    errorMessage = e?.message || "Failed to load products"
+  }
 
   const nextOffset = offset + limit
   const prevOffset = Math.max(0, offset - limit)
@@ -70,6 +79,11 @@ export default async function ProductsPage(props: any) {
             <PageSizeSelect values={[10, 20, 50]} />
           </Suspense>
         </div>
+        {errorMessage && (
+          <div className="mt-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2">
+            {errorMessage}
+          </div>
+        )}
       </div>
 
       {products.length === 0 ? (
