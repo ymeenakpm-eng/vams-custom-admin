@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     }
     if (order) url.searchParams.set("order", order)
 
-    const res = await fetch(url.toString(), {
+    let res = await fetch(url.toString(), {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -45,6 +45,35 @@ export async function GET(req: NextRequest) {
       },
       cache: "no-store",
     })
+    if (res.status === 401) {
+      try {
+        const basic = Buffer.from(`${token}:`).toString("base64")
+        const resBasic = await fetch(url.toString(), {
+          method: "GET",
+          headers: { Authorization: `Basic ${basic}` },
+          cache: "no-store",
+        })
+        if (resBasic.status !== 401) {
+          res = resBasic
+        } else {
+          // try cookie fallback
+          const email = process.env.MEDUSA_ADMIN_EMAIL || process.env.ADMIN_UI_EMAIL
+          const password = process.env.MEDUSA_ADMIN_PASSWORD || process.env.ADMIN_UI_PASSWORD
+          if (email && password) {
+            const login = await fetch(`${base}/admin/auth`, {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ email, password }),
+              cache: "no-store",
+            })
+            const cookie = login.headers.get("set-cookie")
+            if (cookie) {
+              res = await fetch(url.toString(), { method: "GET", headers: { cookie }, cache: "no-store" })
+            }
+          }
+        }
+      } catch {}
+    }
     const text = await res.text()
     return new NextResponse(text, { status: res.status, headers: { "content-type": res.headers.get("content-type") || "application/json" } })
   } catch (e: any) {
@@ -58,6 +87,7 @@ export async function POST(req: NextRequest) {
 
     let body: any = {}
     const ct = req.headers.get("content-type") || ""
+    const isForm = ct.includes("application/x-www-form-urlencoded")
     if (ct.includes("application/json")) {
       body = await req.json()
     } else if (ct.includes("application/x-www-form-urlencoded")) {
@@ -98,7 +128,7 @@ export async function POST(req: NextRequest) {
     const referer = req.headers.get("referer") || ""
     if (!res.ok) {
       const text = await res.text()
-      if (referer.includes("/categories")) {
+      if (referer.includes("/categories") || isForm) {
         let msg = ""
         try { msg = JSON.parse(text)?.message || "" } catch { msg = text || "" }
         const u = new URL(`/categories`, req.url)
@@ -109,7 +139,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: text }, { status: res.status })
     }
 
-    if (referer.includes("/categories")) {
+    if (referer.includes("/categories") || isForm) {
       const u = new URL(`/categories`, req.url)
       u.searchParams.set("saved", "1")
       return NextResponse.redirect(u)
