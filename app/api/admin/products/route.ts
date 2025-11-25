@@ -172,7 +172,7 @@ export async function POST(req: NextRequest) {
         const u = new URL(`/products`, req.url)
         u.searchParams.set("error", "1")
         if (msg) u.searchParams.set("msg", String(msg).slice(0, 160))
-        return NextResponse.redirect(u)
+        return NextResponse.redirect(u, 303)
       }
       return NextResponse.json({ error: text }, { status: res.status })
     }
@@ -181,7 +181,7 @@ export async function POST(req: NextRequest) {
     if (referer.includes("/products")) {
       const u = new URL("/products", req.url)
       u.searchParams.set("created", "1")
-      return NextResponse.redirect(u)
+      return NextResponse.redirect(u, 303)
     }
 
     return new NextResponse(text, { status: 200, headers: { "content-type": "application/json" } })

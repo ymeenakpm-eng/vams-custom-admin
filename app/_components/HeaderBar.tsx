@@ -15,20 +15,14 @@ export default function HeaderBar() {
 
   useEffect(() => { setValue(initial) }, [initial])
 
-  // Debounce search to /products
+  // Debounce search; only affect URL when already on /products
   useEffect(() => {
     const t = setTimeout(() => {
-      const target = "/products"
-      const params = new URLSearchParams()
-      if (value) params.set("q", value)
-      if (pathname.startsWith("/products")) {
-        const current = new URLSearchParams(sp.toString())
-        if (value) current.set("q", value); else current.delete("q")
-        current.delete("offset")
-        router.replace(`${pathname}?${current.toString()}`)
-      } else {
-        router.push(`${target}?${params.toString()}`)
-      }
+      if (!pathname.startsWith("/products")) return
+      const current = new URLSearchParams(sp.toString())
+      if (value) current.set("q", value); else current.delete("q")
+      current.delete("offset")
+      router.replace(`${pathname}?${current.toString()}`)
     }, 600)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
