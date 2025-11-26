@@ -1,4 +1,5 @@
 import Link from "next/link"
+import ConfirmDeleteButton from "../_components/ConfirmDeleteButton"
 import SearchBox from "../_components/SearchBox"
 import PageSizeSelect from "../_components/PageSizeSelect"
 import CategorySortSelect from "../_components/CategorySortSelect"
@@ -94,6 +95,7 @@ export default async function CategoriesPage(props: any) {
                 <th className="text-left px-3 py-2 border-b">Name</th>
                 <th className="text-left px-3 py-2 border-b">Handle</th>
                 <th className="text-left px-3 py-2 border-b">Created</th>
+                <th className="text-left px-3 py-2 border-b">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -102,6 +104,7 @@ export default async function CategoriesPage(props: any) {
                   <td className="px-3 py-2 border-t">{c.name}</td>
                   <td className="px-3 py-2 border-t">{c.handle}</td>
                   <td className="px-3 py-2 border-t">{new Date(c.created_at).toLocaleString()}</td>
+                  <td className="px-3 py-2 border-t"><ConfirmDeleteButton action={`/api/admin/categories/${c.id}`} /></td>
                 </tr>
               ))}
             </tbody>
