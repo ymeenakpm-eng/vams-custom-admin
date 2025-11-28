@@ -146,14 +146,14 @@ export async function POST(req: NextRequest) {
           body.options = [
             {
               title: "Title",
-              values: [{ value: title }],
+              values: [title], // array of strings
             },
           ]
         } else if (
           !body.options[0].values ||
           !Array.isArray(body.options[0].values)
         ) {
-          body.options[0].values = [{ value: title }]
+          body.options[0].values = [title] // array of strings
         }
 
         body.variants = [
