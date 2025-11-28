@@ -92,6 +92,7 @@ export async function POST(req: NextRequest) {
     let body: any = {}
     const contentType = req.headers.get("content-type") || ""
     const isForm = contentType.includes("application/x-www-form-urlencoded")
+    const fromRetool = req.headers.get("x-from-retool") === "1"
 
     if (contentType.includes("application/json")) {
       body = await req.json()
@@ -167,7 +168,7 @@ export async function POST(req: NextRequest) {
     const referer = req.headers.get("referer") || ""
     const text = await res.text()
     if (!res.ok) {
-      if (referer.includes("/products") || isForm) {
+      if ((referer.includes("/products") || isForm) && !fromRetool) {
         let msg = ""
         try { msg = JSON.parse(text)?.message || "" } catch { msg = text || "" }
         const u = new URL(`/products`, req.url)
@@ -179,7 +180,7 @@ export async function POST(req: NextRequest) {
     }
 
     // If came from a form submit, redirect back to /products with toast flag
-    if (referer.includes("/products") || isForm) {
+    if ((referer.includes("/products") || isForm) && !fromRetool) {
       const u = new URL("/products", req.url)
       u.searchParams.set("created", "1")
       return NextResponse.redirect(u, 303)
