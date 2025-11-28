@@ -3,7 +3,8 @@ import type { NextRequest } from "next/server"
 
 function requireEnv() {
   const baseRaw = process.env.MEDUSA_BACKEND_URL || ""
-  const tokenRaw = process.env.MEDUSA_ADMIN_TOKEN || process.env.MEDUSA_ADMIN_API_TOKEN || ""
+  const tokenRaw =
+    process.env.MEDUSA_ADMIN_TOKEN || process.env.MEDUSA_ADMIN_API_TOKEN || ""
   const base = baseRaw.trim().replace(/\/+$/, "")
   const token = tokenRaw.trim()
   if (!base || !token) {
@@ -14,7 +15,8 @@ function requireEnv() {
 
 async function loginAndGetCookie(base: string): Promise<string | null> {
   const email = process.env.MEDUSA_ADMIN_EMAIL || process.env.ADMIN_UI_EMAIL
-  const password = process.env.MEDUSA_ADMIN_PASSWORD || process.env.ADMIN_UI_PASSWORD
+  const password =
+    process.env.MEDUSA_ADMIN_PASSWORD || process.env.ADMIN_UI_PASSWORD
   if (!email || !password) return null
   try {
     const res = await fetch(`${base}/admin/auth`, {
@@ -79,9 +81,17 @@ export async function GET(req: NextRequest) {
       }
     }
     const text = await res.text()
-    return new NextResponse(text, { status: res.status, headers: { "content-type": res.headers.get("content-type") || "application/json" } })
+    return new NextResponse(text, {
+      status: res.status,
+      headers: {
+        "content-type": res.headers.get("content-type") || "application/json",
+      },
+    })
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message || String(e) }, { status: 500 })
+    return NextResponse.json(
+      { error: e?.message || String(e) },
+      { status: 500 },
+    )
   }
 }
 
@@ -111,7 +121,7 @@ export async function POST(req: NextRequest) {
       const rawSingle = String(fd.get("image_url") || "")
       const parts = [
         ...rawMulti,
-        ...rawSingle.split(/[\n,]/g).map((s) => s.trim())
+        ...rawSingle.split(/[\n,]/g).map((s) => s.trim()),
       ].filter(Boolean)
       if (parts.length) body.images = parts
     } else {
@@ -131,17 +141,26 @@ export async function POST(req: NextRequest) {
       const title = (body.title || "Untitled Product").toString()
 
       if (!hasVariants) {
-        // Ensure at least one option exists that the variant can reference.
+        // Ensure at least one option exists with values
         if (!hasOptions) {
-          body.options = [{ title: "Title" }]
+          body.options = [
+            {
+              title: "Title",
+              values: [{ value: title }],
+            },
+          ]
+        } else if (
+          !body.options[0].values ||
+          !Array.isArray(body.options[0].values)
+        ) {
+          body.options[0].values = [{ value: title }]
         }
 
         body.variants = [
           {
             title,
-            // basic option value matching the single option above
-            options: [{ value: title }],
-            inventory_quantity: 0,
+            // options must be an object: key = option title, value = chosen value
+            options: { [body.options[0].title]: title },
             prices: [
               {
                 amount: 0,
@@ -200,7 +219,11 @@ export async function POST(req: NextRequest) {
     if (!res.ok) {
       if ((referer.includes("/products") || isForm) && !fromRetool) {
         let msg = ""
-        try { msg = JSON.parse(text)?.message || "" } catch { msg = text || "" }
+        try {
+          msg = JSON.parse(text)?.message || ""
+        } catch {
+          msg = text || ""
+        }
         const u = new URL(`/products`, req.url)
         u.searchParams.set("error", "1")
         if (msg) u.searchParams.set("msg", String(msg).slice(0, 160))
@@ -216,8 +239,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.redirect(u, 303)
     }
 
-    return new NextResponse(text, { status: 200, headers: { "content-type": "application/json" } })
+    return new NextResponse(text, {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    })
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message || String(e) }, { status: 500 })
+    return NextResponse.json(
+      { error: e?.message || String(e) },
+      { status: 500 },
+    )
   }
 }
