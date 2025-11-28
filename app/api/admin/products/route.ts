@@ -123,6 +123,36 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // For Retool calls, if no explicit variants/options are provided, create a
+    // minimal default option + variant so Medusa will accept the product.
+    if (fromRetool) {
+      const hasVariants = Array.isArray(body.variants) && body.variants.length > 0
+      const hasOptions = Array.isArray(body.options) && body.options.length > 0
+      const title = (body.title || "Untitled Product").toString()
+
+      if (!hasVariants) {
+        // Ensure at least one option exists that the variant can reference.
+        if (!hasOptions) {
+          body.options = [{ title: "Title" }]
+        }
+
+        body.variants = [
+          {
+            title,
+            // basic option value matching the single option above
+            options: [{ value: title }],
+            inventory_quantity: 0,
+            prices: [
+              {
+                amount: 0,
+                currency_code: "usd",
+              },
+            ],
+          },
+        ]
+      }
+    }
+
     let res = await fetch(`${base}/admin/products`, {
       method: "POST",
       headers: {
