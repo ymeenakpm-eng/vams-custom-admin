@@ -13,14 +13,17 @@ export default function HeaderBar() {
   const [me, setMe] = useState<{ authenticated: boolean; email?: string; name?: string } | null>(null)
   const [open, setOpen] = useState(false)
 
-  useEffect(() => { setValue(initial) }, [initial])
+  useEffect(() => {
+    setValue(initial)
+  }, [initial])
 
   // Debounce search; only affect URL when already on /products
   useEffect(() => {
     const t = setTimeout(() => {
       if (!pathname.startsWith("/products")) return
       const current = new URLSearchParams(sp.toString())
-      if (value) current.set("q", value); else current.delete("q")
+      if (value) current.set("q", value)
+      else current.delete("q")
       current.delete("offset")
       router.replace(`${pathname}?${current.toString()}`)
     }, 600)
@@ -35,38 +38,17 @@ export default function HeaderBar() {
       .catch(() => setMe(null))
   }, [])
 
-  const links: { href: string; label: string }[] = [
-    { href: "/", label: "Home" },
-    { href: "/products", label: "Products" },
-    { href: "/customers", label: "Customers" },
-    { href: "/sales", label: "Sales" },
-    { href: "/orders", label: "Orders" },
-  ]
-
   return (
     <header className="sticky top-0 z-40 bg-gradient-to-r from-cyan-500 via-sky-500 to-violet-500 text-white shadow">
       <div className="h-12 w-full px-4 flex items-center justify-between gap-3">
-        <Link href="/products" className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2">
           <img src={logoSrc} alt="VAMS Biome" className="h-7 w-auto object-contain" />
           <div className="text-sm sm:text-base font-semibold leading-none">
             <span className="mr-1">VAMS</span>
             <span className="font-normal opacity-90">Admin</span>
           </div>
         </Link>
-        <nav className="hidden md:flex items-center gap-1">
-          {links.map((l) => {
-            const active = pathname === l.href || pathname.startsWith(l.href + "/") || (l.href === "/" && pathname === "/")
-            return (
-              <Link
-                key={l.href}
-                href={l.href}
-                className={`px-2.5 py-1.5 rounded-md text-sm ${active ? "bg-white/25" : "hover:bg-white/15"}`}
-              >
-                {l.label}
-              </Link>
-            )
-          })}
-        </nav>
+        {/* Top tabs removed; navigation lives in left sidebar now */}
         <div className="hidden md:block w-80">
           <input
             value={value}
