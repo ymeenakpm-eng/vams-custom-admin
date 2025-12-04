@@ -95,6 +95,71 @@ export async function GET(req: NextRequest) {
   }
 }
 
+export async function DELETE(req: NextRequest) {
+  try {
+    const { base, token } = requireEnv()
+
+    const sp = req.nextUrl.searchParams
+    const id = sp.get("id")?.trim()
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Missing product id in query parameter 'id'" },
+        { status: 400 },
+      )
+    }
+
+    const url = `${base}/admin/products/${encodeURIComponent(id)}`
+
+    let res = await fetch(url, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "x-medusa-access-token": token,
+        "x-medusa-api-key": token,
+        "x-api-key": token,
+      },
+      cache: "no-store",
+    })
+
+    if (res.status === 401) {
+      try {
+        const basic = Buffer.from(`${token}:`).toString("base64")
+        const resBasic = await fetch(url, {
+          method: "DELETE",
+          headers: { Authorization: `Basic ${basic}` },
+          cache: "no-store",
+        })
+        if (resBasic.status !== 401) {
+          res = resBasic
+        }
+      } catch {}
+
+      const cookie = await loginAndGetCookie(base)
+      if (cookie) {
+        res = await fetch(url, {
+          method: "DELETE",
+          headers: { cookie },
+          cache: "no-store",
+        })
+      }
+    }
+
+    const text = await res.text()
+    return new NextResponse(text, {
+      status: res.status,
+      headers: {
+        "content-type": res.headers.get("content-type") || "application/json",
+      },
+    })
+  } catch (e: any) {
+    return NextResponse.json(
+      { error: e?.message || String(e) },
+      { status: 500 },
+    )
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { base, token } = requireEnv()
