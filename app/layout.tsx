@@ -40,7 +40,7 @@ export default function RootLayout({
               <SidebarNav />
             </Suspense>
           </aside>
-          <main className="flex-1 px-4 py-6 max-w-5xl">
+          <main className="flex-1 px-6 py-6">
             {children}
           </main>
         </div>

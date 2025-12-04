@@ -1,9 +1,9 @@
 import SearchBox from "../_components/SearchBox"
-import ConfirmDeleteButton from "../_components/ConfirmDeleteButton"
 import SortSelect from "../_components/SortSelect"
 import PageSizeSelect from "../_components/PageSizeSelect"
 import CreateProductModal from "../_components/CreateProductModal"
 import { Suspense } from "react"
+import ProductsTable from "../_components/ProductsTable"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
@@ -63,8 +63,8 @@ export default async function ProductsPage(props: any) {
   const hasPrev = offset > 0
 
   return (
-    <main>
-      <div className="bg-white border rounded-lg p-4 shadow-sm mb-4">
+    <main className="w-full">
+      <div className="bg-white border rounded-lg p-4 shadow-sm mb-4 w-full">
         <div className="flex items-center justify-between mb-3">
           <h1 className="text-lg font-semibold">Products</h1>
           <CreateProductModal />
@@ -100,35 +100,7 @@ export default async function ProductsPage(props: any) {
       {products.length === 0 ? (
         <p>No products yet.</p>
       ) : (
-        <div className="bg-white border rounded-lg shadow-sm overflow-auto max-h-[calc(100vh-18rem)]">
-          <table className="w-full">
-            <thead className="bg-gray-50 sticky top-0 z-10">
-              <tr>
-                <th className="text-left px-3 py-2 border-b">Title</th>
-                <th className="text-left px-3 py-2 border-b">Status</th>
-                <th className="text-left px-3 py-2 border-b">Created</th>
-                <th className="text-left px-3 py-2 border-b">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.map((p: any, i: number) => (
-                <tr key={p.id} className={i % 2 ? "bg-gray-50/40" : "bg-white hover:bg-gray-50"}>
-                  <td className="px-3 py-2 border-t">{p.title}</td>
-                  <td className="px-3 py-2 border-t">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${p.status === "published" ? "bg-emerald-100 text-emerald-700" : "bg-gray-200 text-gray-700"}`}>
-                      {p.status}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 border-t">{new Date(p.created_at).toLocaleString()}</td>
-                  <td className="px-3 py-2 border-t">
-                    <a href={`/products/${p.id}`} className="text-cyan-700 hover:underline mr-3">Edit</a>
-                    <ConfirmDeleteButton action={`/api/admin/products/${p.id}`} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ProductsTable products={products} />
       )}
 
       <div className="flex items-center gap-2 mt-4">
