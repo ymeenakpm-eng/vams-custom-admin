@@ -65,10 +65,11 @@ export default async function ProductsPage(props: any) {
   return (
     <main className="w-full">
       <div className="bg-white border rounded-lg p-4 shadow-sm mb-4 w-full">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-3 mb-3">
           <h1 className="text-lg font-semibold">Products</h1>
           <CreateProductModal />
         </div>
+
         <div className="flex items-center gap-2">
           <Suspense fallback={null}>
             <SearchBox placeholder="Search products" />

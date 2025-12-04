@@ -49,6 +49,52 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
       u.searchParams.set("deleted", "1")
       return NextResponse.redirect(u, 303)
     }
+
+    if (intent === "update") {
+      const name = String(fd.get("name") || "").trim()
+      const handle = String(fd.get("handle") || "").trim()
+
+      const body: any = {}
+      if (name) body.name = name
+      if (handle) body.handle = handle
+
+      let res = await fetch(`${base}/admin/product-categories/${id}`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+        cache: "no-store",
+      })
+      if (res.status === 401) {
+        try {
+          const basic = Buffer.from(`${token}:`).toString("base64")
+          const resBasic = await fetch(`${base}/admin/product-categories/${id}`, {
+            method: "PATCH",
+            headers: {
+              Authorization: `Basic ${basic}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(body),
+            cache: "no-store",
+          })
+          if (resBasic.status !== 401) res = resBasic
+        } catch {}
+      }
+
+      if (!res.ok) {
+        const text = await res.text()
+        const u = new URL(`/categories`, req.url)
+        u.searchParams.set("error", "1")
+        if (text) u.searchParams.set("msg", String(text).slice(0, 160))
+        return NextResponse.redirect(u, 303)
+      }
+
+      const u = new URL(`/categories`, req.url)
+      u.searchParams.set("saved", "1")
+      return NextResponse.redirect(u, 303)
+    }
   }
 
   return NextResponse.json({ error: "Unsupported operation" }, { status: 400 })

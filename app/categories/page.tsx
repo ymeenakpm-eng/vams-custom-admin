@@ -3,6 +3,7 @@ import ConfirmDeleteButton from "../_components/ConfirmDeleteButton"
 import SearchBox from "../_components/SearchBox"
 import PageSizeSelect from "../_components/PageSizeSelect"
 import CategorySortSelect from "../_components/CategorySortSelect"
+import EditCategoryButton from "../_components/EditCategoryButton"
 import { Suspense } from "react"
 
 export const dynamic = "force-dynamic"
@@ -81,36 +82,51 @@ export default async function CategoriesPage(props: any) {
         <form method="POST" action="/api/admin/categories" style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <input name="name" placeholder="New category name" required className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
           <input name="handle" placeholder="handle (optional)" className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
-          <button type="submit" className="bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-2 rounded-md text-sm shadow">Create</button>
+          <button type="submit" className="bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-2 rounded-md text-sm shadow">New category</button>
         </form>
       </section>
 
-      {categories.length === 0 ? (
-        <p>No categories yet.</p>
-      ) : (
-        <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50">
+      <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="text-left px-3 py-2 border-b">Name</th>
+              <th className="text-left px-3 py-2 border-b">Handle</th>
+              <th className="text-left px-3 py-2 border-b">ID</th>
+              <th className="text-left px-3 py-2 border-b">Internal</th>
+              <th className="text-left px-3 py-2 border-b">Active</th>
+              <th className="text-left px-3 py-2 border-b">Created</th>
+              <th className="text-left px-3 py-2 border-b">Updated</th>
+              <th className="text-left px-3 py-2 border-b">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {categories.length === 0 ? (
               <tr>
-                <th className="text-left px-3 py-2 border-b">Name</th>
-                <th className="text-left px-3 py-2 border-b">Handle</th>
-                <th className="text-left px-3 py-2 border-b">Created</th>
-                <th className="text-left px-3 py-2 border-b">Actions</th>
+                <td colSpan={8} className="px-3 py-3 border-t text-center text-gray-500">
+                  No categories yet.
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {categories.map((c: any, i: number) => (
+            ) : (
+              categories.map((c: any, i: number) => (
                 <tr key={c.id} className={i % 2 ? "bg-gray-50/40" : "bg-white hover:bg-gray-50"}>
-                  <td className="px-3 py-2 border-t">{c.name}</td>
-                  <td className="px-3 py-2 border-t">{c.handle}</td>
-                  <td className="px-3 py-2 border-t">{new Date(c.created_at).toLocaleString()}</td>
-                  <td className="px-3 py-2 border-t"><ConfirmDeleteButton action={`/api/admin/categories/${c.id}`} /></td>
+                  <td className="px-3 py-2 border-t align-top">{c.name}</td>
+                  <td className="px-3 py-2 border-t align-top">{c.handle}</td>
+                  <td className="px-3 py-2 border-t align-top font-mono text-[11px] break-all">{c.id}</td>
+                  <td className="px-3 py-2 border-t align-top text-xs">{String(c.is_internal ?? false)}</td>
+                  <td className="px-3 py-2 border-t align-top text-xs">{String(c.is_active ?? true)}</td>
+                  <td className="px-3 py-2 border-t align-top text-xs text-gray-600">{new Date(c.created_at).toLocaleString()}</td>
+                  <td className="px-3 py-2 border-t align-top text-xs text-gray-600">{c.updated_at ? new Date(c.updated_at).toLocaleString() : ""}</td>
+                  <td className="px-3 py-2 border-t align-top space-x-2">
+                    <EditCategoryButton id={c.id} name={c.name} handle={c.handle} />
+                    <ConfirmDeleteButton action={`/api/admin/categories/${c.id}`} />
+                  </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
 
       <div className="flex items-center gap-2 mt-4">
         <a href={`/categories?${new URLSearchParams({ q, offset: String(prevOffset) }).toString()}`} className={hasPrev ? "text-gray-700" : "text-gray-400"}>Prev</a>

@@ -11,7 +11,7 @@ export default function ConfirmDeleteButton({ action, label = "Delete" }: { acti
             e.preventDefault()
           }
         }}
-        className="border border-red-300 text-red-600 px-2 py-1 rounded text-sm hover:bg-red-50"
+        className="inline-flex items-center rounded-md bg-cyan-500 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-cyan-600"
       >
         {label}
       </button>
