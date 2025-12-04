@@ -72,14 +72,24 @@ export default async function OrdersPage(props: any) {
         <thead>
           <tr>
             <th align="left" style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Order</th>
+            <th align="left" style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Order ID</th>
+            <th align="left" style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Cart ID</th>
             <th align="left" style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Email</th>
+            <th align="left" style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Customer</th>
             <th align="left" style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Status</th>
             <th align="left" style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Payment</th>
             <th align="left" style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Currency</th>
+            <th align="left" style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Items</th>
             <th align="left" style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Total</th>
             <th align="left" style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Subtotal</th>
             <th align="left" style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Tax</th>
             <th align="left" style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Shipping</th>
+            <th align="left" style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Discount</th>
+            <th align="left" style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Refunded</th>
+            <th align="left" style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Gift card</th>
+            <th align="left" style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Region</th>
+            <th align="left" style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Sales channel</th>
+            <th align="left" style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Country</th>
             <th align="left" style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Created</th>
             <th align="left" style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Updated</th>
             <th align="left" style={{ padding: 8, borderBottom: "1px solid #e5e7eb" }}>Actions</th>
@@ -88,7 +98,7 @@ export default async function OrdersPage(props: any) {
         <tbody>
           {orders.length === 0 ? (
             <tr>
-              <td colSpan={12} style={{ padding: 12, textAlign: "center", color: "#6b7280", borderBottom: "1px solid #f3f4f6" }}>
+              <td colSpan={22} style={{ padding: 12, textAlign: "center", color: "#6b7280", borderBottom: "1px solid #f3f4f6" }}>
                 No orders yet.
               </td>
             </tr>
@@ -98,6 +108,9 @@ export default async function OrdersPage(props: any) {
               const subtotal = typeof o.subtotal === "number" ? o.subtotal : (o.subtotal ?? "")
               const taxTotal = typeof o.tax_total === "number" ? o.tax_total : (o.tax_total ?? "")
               const shippingTotal = typeof o.shipping_total === "number" ? o.shipping_total : (o.shipping_total ?? "")
+              const discountTotal = typeof o.discount_total === "number" ? o.discount_total : (o.discount_total ?? "")
+              const refundedTotal = typeof o.refunded_total === "number" ? o.refunded_total : (o.refunded_total ?? "")
+              const giftCardTotal = typeof o.gift_card_total === "number" ? o.gift_card_total : (o.gift_card_total ?? "")
               const currency = o.currency_code || o.currency || ""
               const fmt = (amount: any) => {
                 if (typeof amount !== "number") return amount === "" ? "—" : amount
@@ -108,13 +121,24 @@ export default async function OrdersPage(props: any) {
               const displaySubtotal = fmt(subtotal)
               const displayTax = fmt(taxTotal)
               const displayShipping = fmt(shippingTotal)
+              const displayDiscount = fmt(discountTotal)
+              const displayRefunded = fmt(refundedTotal)
+              const displayGiftCard = fmt(giftCardTotal)
               const orderLabel = o.display_id ? `#${o.display_id}` : (o.id || "—")
               const created = o.created_at ? new Date(o.created_at).toLocaleString() : "—"
               const updated = o.updated_at ? new Date(o.updated_at).toLocaleString() : "—"
+              const customerName = o.customer ? [o.customer.first_name, o.customer.last_name].filter(Boolean).join(" ") : ""
+              const itemCount = Array.isArray(o.items) ? o.items.reduce((sum: number, it: any) => sum + (it.quantity || 0), 0) : ""
+              const regionName = o.region?.name || ""
+              const salesChannelName = o.sales_channel?.name || ""
+              const countryCode = o.shipping_address?.country_code || o.billing_address?.country_code || ""
               return (
                 <tr key={o.id}>
                   <td style={{ padding: 8, borderBottom: "1px solid #f3f4f6", fontFamily: "monospace" }}>{orderLabel}</td>
+                  <td style={{ padding: 8, borderBottom: "1px solid #f3f4f6", fontFamily: "monospace" }}>{o.id || "—"}</td>
+                  <td style={{ padding: 8, borderBottom: "1px solid #f3f4f6", fontFamily: "monospace" }}>{o.cart_id || "—"}</td>
                   <td style={{ padding: 8, borderBottom: "1px solid #f3f4f6" }}>{o.email || "—"}</td>
+                  <td style={{ padding: 8, borderBottom: "1px solid #f3f4f6" }}>{customerName || "—"}</td>
                   <td style={{ padding: 8, borderBottom: "1px solid #f3f4f6" }}>
                     <span style={{ fontSize: 12, padding: "2px 8px", borderRadius: 9999, background: "#E5E7EB", color: "#111827" }}>
                       {o.status || o.fulfillment_status || "unknown"}
@@ -122,10 +146,17 @@ export default async function OrdersPage(props: any) {
                   </td>
                   <td style={{ padding: 8, borderBottom: "1px solid #f3f4f6" }}>{o.payment_status || "—"}</td>
                   <td style={{ padding: 8, borderBottom: "1px solid #f3f4f6", textTransform: "uppercase" }}>{currency || ""}</td>
+                  <td style={{ padding: 8, borderBottom: "1px solid #f3f4f6" }}>{itemCount || "—"}</td>
                   <td style={{ padding: 8, borderBottom: "1px solid #f3f4f6" }}>{displayTotal}</td>
                   <td style={{ padding: 8, borderBottom: "1px solid #f3f4f6" }}>{displaySubtotal}</td>
                   <td style={{ padding: 8, borderBottom: "1px solid #f3f4f6" }}>{displayTax}</td>
                   <td style={{ padding: 8, borderBottom: "1px solid #f3f4f6" }}>{displayShipping}</td>
+                  <td style={{ padding: 8, borderBottom: "1px solid #f3f4f6" }}>{displayDiscount}</td>
+                  <td style={{ padding: 8, borderBottom: "1px solid #f3f4f6" }}>{displayRefunded}</td>
+                  <td style={{ padding: 8, borderBottom: "1px solid #f3f4f6" }}>{displayGiftCard}</td>
+                  <td style={{ padding: 8, borderBottom: "1px solid #f3f4f6" }}>{regionName || "—"}</td>
+                  <td style={{ padding: 8, borderBottom: "1px solid #f3f4f6" }}>{salesChannelName || "—"}</td>
+                  <td style={{ padding: 8, borderBottom: "1px solid #f3f4f6", textTransform: "uppercase" }}>{countryCode || ""}</td>
                   <td style={{ padding: 8, borderBottom: "1px solid #f3f4f6" }}>{created}</td>
                   <td style={{ padding: 8, borderBottom: "1px solid #f3f4f6" }}>{updated}</td>
                   <td style={{ padding: 8, borderBottom: "1px solid #f3f4f6" }}>

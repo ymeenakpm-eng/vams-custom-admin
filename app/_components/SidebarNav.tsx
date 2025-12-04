@@ -24,6 +24,7 @@ export default function SidebarNav() {
     <div className="h-full flex flex-col">
       <nav className="px-4 py-3 space-y-2 flex-1">
         <NavLink href="/products">Products</NavLink>
+        <NavLink href="/orders">Sales</NavLink>
         <NavLink href="/orders">Orders</NavLink>
         <NavLink href="/categories">Categories</NavLink>
       </nav>
