@@ -179,8 +179,30 @@ export async function POST(req: NextRequest) {
       }
       const description = String(fd.get("description") || "").trim()
       if (description) body.description = description
+      const handle = String(fd.get("handle") || "").trim()
+      if (handle) body.handle = handle
+      const thumbnail = String(fd.get("thumbnail") || "").trim()
+      if (thumbnail) body.thumbnail = thumbnail
+      const parseNumber = (v: FormDataEntryValue | null) => {
+        if (v == null) return undefined
+        const n = Number(String(v))
+        return Number.isFinite(n) ? n : undefined
+      }
+      const weight = parseNumber(fd.get("weight"))
+      if (weight != null) (body as any).weight = weight
+      const length = parseNumber(fd.get("length"))
+      if (length != null) (body as any).length = length
+      const height = parseNumber(fd.get("height"))
+      if (height != null) (body as any).height = height
+      const width = parseNumber(fd.get("width"))
+      if (width != null) (body as any).width = width
+      const hsCode = String(fd.get("hs_code") || "").trim()
+      if (hsCode) (body as any).hs_code = hsCode
+      const originCountry = String(fd.get("origin_country") || "").trim()
+      if (originCountry) (body as any).origin_country = originCountry
       const catIds = fd.getAll("category_ids")?.map(String).filter(Boolean)
       if (catIds && catIds.length) body.category_ids = catIds
+
       // image_urls can be provided as multiple fields or comma/line separated in a single field
       const rawMulti = fd.getAll("image_urls").map((v) => String(v))
       const rawSingle = String(fd.get("image_url") || "")

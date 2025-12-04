@@ -35,6 +35,42 @@ export default function CreateProductModal() {
                 <div>Description</div>
                 <textarea name="description" rows={3} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
               </label>
+              <label>
+                <div>Handle</div>
+                <input name="handle" placeholder="Optional URL handle" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
+              </label>
+              <label>
+                <div>Thumbnail URL (optional)</div>
+                <input name="thumbnail" placeholder="https://..." className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
+              </label>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 8 }}>
+                <label>
+                  <div>Weight</div>
+                  <input name="weight" type="number" step="0.01" placeholder="g" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
+                </label>
+                <label>
+                  <div>Length</div>
+                  <input name="length" type="number" step="0.01" placeholder="cm" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
+                </label>
+                <label>
+                  <div>Height</div>
+                  <input name="height" type="number" step="0.01" placeholder="cm" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
+                </label>
+                <label>
+                  <div>Width</div>
+                  <input name="width" type="number" step="0.01" placeholder="cm" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
+                </label>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
+                <label>
+                  <div>HS code</div>
+                  <input name="hs_code" placeholder="Optional" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
+                </label>
+                <label>
+                  <div>Origin country</div>
+                  <input name="origin_country" placeholder="e.g. US, IN" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
+                </label>
+              </div>
               <CategoryMultiSelect />
               <label>
                 <div>Images (URLs)</div>

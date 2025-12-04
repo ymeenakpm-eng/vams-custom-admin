@@ -65,6 +65,94 @@ export default async function ProductEditPage({ params }: { params: { id: string
           <textarea name="description" defaultValue={product.description || ""} rows={4} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
         </label>
 
+        <label className="block">
+          <div>Handle</div>
+          <input
+            name="handle"
+            defaultValue={product.handle || ""}
+            placeholder="Optional URL handle"
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+          />
+        </label>
+
+        <label className="block">
+          <div>Thumbnail URL (optional)</div>
+          <input
+            name="thumbnail"
+            defaultValue={product.thumbnail || ""}
+            placeholder="https://..."
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+          />
+        </label>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <label className="block">
+            <div>Weight</div>
+            <input
+              name="weight"
+              type="number"
+              step="0.01"
+              defaultValue={product.weight ?? ""}
+              placeholder="g"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+            />
+          </label>
+          <label className="block">
+            <div>Length</div>
+            <input
+              name="length"
+              type="number"
+              step="0.01"
+              defaultValue={product.length ?? ""}
+              placeholder="cm"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+            />
+          </label>
+          <label className="block">
+            <div>Height</div>
+            <input
+              name="height"
+              type="number"
+              step="0.01"
+              defaultValue={product.height ?? ""}
+              placeholder="cm"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+            />
+          </label>
+          <label className="block">
+            <div>Width</div>
+            <input
+              name="width"
+              type="number"
+              step="0.01"
+              defaultValue={product.width ?? ""}
+              placeholder="cm"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+            />
+          </label>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <label className="block">
+            <div>HS code</div>
+            <input
+              name="hs_code"
+              defaultValue={product.hs_code || ""}
+              placeholder="Optional"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+            />
+          </label>
+          <label className="block">
+            <div>Origin country</div>
+            <input
+              name="origin_country"
+              defaultValue={product.origin_country || ""}
+              placeholder="e.g. US, IN"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+            />
+          </label>
+        </div>
+
         <CategoryMultiSelect defaultSelectedIds={[...selectedCats]} />
 
         {existingImages.length > 0 && (
