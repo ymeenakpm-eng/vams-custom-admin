@@ -3,16 +3,29 @@ import CategoryMultiSelect from "../../_components/CategoryMultiSelect"
 import UploadImage from "../../_components/UploadImage"
 
 async function getProduct(id: string) {
-  const res = await fetch(`/api/admin/products/${encodeURIComponent(id)}`, {
-    cache: "no-store",
-  }).catch(() => null as any)
+  const base =
+    (process.env.NEXT_PUBLIC_BASE_URL && process.env.NEXT_PUBLIC_BASE_URL.trim()) ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "")
+  const resolvedBase = base || "http://localhost:3000"
+
+  const res = await fetch(
+    `${resolvedBase}/api/admin/products/${encodeURIComponent(id)}`,
+    {
+      cache: "no-store",
+    },
+  ).catch(() => null as any)
   if (!res || !res.ok) return null
   const data = await res.json().catch(() => null as any)
   return data?.product ?? null
 }
 
 async function getCategories() {
-  const res = await fetch(`/api/admin/categories`, {
+  const base =
+    (process.env.NEXT_PUBLIC_BASE_URL && process.env.NEXT_PUBLIC_BASE_URL.trim()) ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "")
+  const resolvedBase = base || "http://localhost:3000"
+
+  const res = await fetch(`${resolvedBase}/api/admin/categories`, {
     cache: "no-store",
   }).catch(() => null as any)
   if (!res || !res.ok) return [] as any[]
