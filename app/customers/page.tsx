@@ -1,3 +1,5 @@
+import Link from "next/link"
+
 export const dynamic = "force-dynamic"
 export const revalidate = 0
 
@@ -99,7 +101,14 @@ export default async function CustomersPage(props: any) {
                 const created = c.created_at ? new Date(c.created_at).toLocaleString() : "—"
                 return (
                   <tr key={c.id} className="hover:bg-gray-50">
-                    <td className="px-3 py-2 border-b text-sm">{name}</td>
+                    <td className="px-3 py-2 border-b text-sm">
+                      <Link
+                        href={`/customers/${c.id}`}
+                        className="text-cyan-700 hover:underline"
+                      >
+                        {name}
+                      </Link>
+                    </td>
                     <td className="px-3 py-2 border-b text-sm">{c.email || "—"}</td>
                     <td className="px-3 py-2 border-b text-sm">{c.phone || "—"}</td>
                     <td className="px-3 py-2 border-b text-sm uppercase">{country}</td>

@@ -134,6 +134,7 @@ export default function ProductsTable({ products }: ProductsTableProps) {
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(
     () => new Set(columns.map((c) => c.key)),
   );
+  const [copiedProductId, setCopiedProductId] = useState<string | null>(null);
 
   const toggleKey = (key: string) => {
     setVisibleKeys((prev) => {
@@ -203,6 +204,25 @@ export default function ProductsTable({ products }: ProductsTableProps) {
                   >
                     Edit
                   </a>
+                  {Array.isArray(p.variants) && p.variants.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(p.variants[0].id);
+                          setCopiedProductId(p.id);
+                          setTimeout(() => {
+                            setCopiedProductId((prev) => (prev === p.id ? null : prev));
+                          }, 1500);
+                        } catch {
+                          // ignore
+                        }
+                      }}
+                      className="text-[11px] text-cyan-700 hover:text-cyan-900 underline-offset-2 hover:underline"
+                    >
+                      {copiedProductId === p.id ? "Copied" : "Copy first variant ID"}
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

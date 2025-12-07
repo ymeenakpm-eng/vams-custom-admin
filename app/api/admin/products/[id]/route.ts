@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
+import { NextResponse } from "next/server"
 
 function env() {
   const base = process.env.MEDUSA_BACKEND_URL
@@ -14,7 +14,12 @@ export async function GET(_req: NextRequest, context: { params: Promise<{ id: st
     const { id } = await context.params
     const res = await fetch(`${base}/admin/products/${id}`, {
       method: "GET",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "x-medusa-access-token": token,
+        "x-medusa-api-key": token,
+        "x-api-key": token,
+      },
       cache: "no-store",
     })
     const text = await res.text()
