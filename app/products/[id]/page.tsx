@@ -2,6 +2,9 @@ import Link from "next/link"
 import CategoryMultiSelect from "../../_components/CategoryMultiSelect"
 import UploadImage from "../../_components/UploadImage"
 
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 async function getProduct(id: string) {
   const base =
     (process.env.NEXT_PUBLIC_BASE_URL && process.env.NEXT_PUBLIC_BASE_URL.trim()) ||
