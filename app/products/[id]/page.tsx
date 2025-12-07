@@ -3,11 +3,7 @@ import CategoryMultiSelect from "../../_components/CategoryMultiSelect"
 import UploadImage from "../../_components/UploadImage"
 
 async function getProduct(id: string) {
-  const base =
-    (process.env.NEXT_PUBLIC_BASE_URL && process.env.NEXT_PUBLIC_BASE_URL.trim()) ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")
-
-  const res = await fetch(`${base}/api/admin/products/${encodeURIComponent(id)}`, {
+  const res = await fetch(`/api/admin/products/${encodeURIComponent(id)}`, {
     cache: "no-store",
   }).catch(() => null as any)
   if (!res || !res.ok) return null
@@ -16,7 +12,7 @@ async function getProduct(id: string) {
 }
 
 async function getCategories() {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/api/admin/categories`, {
+  const res = await fetch(`/api/admin/categories`, {
     cache: "no-store",
   }).catch(() => null as any)
   if (!res || !res.ok) return [] as any[]
