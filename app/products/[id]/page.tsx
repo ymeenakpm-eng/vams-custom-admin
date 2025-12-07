@@ -3,8 +3,11 @@ import CategoryMultiSelect from "../../_components/CategoryMultiSelect"
 import UploadImage from "../../_components/UploadImage"
 
 async function getProduct(id: string) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/api/admin/products/${id}`, {
-    // When running on server, relative fetch also works, but NEXT_PUBLIC_BASE_URL allows edge/runtime consistency
+  const base =
+    (process.env.NEXT_PUBLIC_BASE_URL && process.env.NEXT_PUBLIC_BASE_URL.trim()) ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")
+
+  const res = await fetch(`${base}/api/admin/products/${encodeURIComponent(id)}`, {
     cache: "no-store",
   }).catch(() => null as any)
   if (!res || !res.ok) return null
