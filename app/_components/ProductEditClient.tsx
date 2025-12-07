@@ -11,7 +11,6 @@ interface ProductEditClientProps {
 
 export default function ProductEditClient({ id }: ProductEditClientProps) {
   const [product, setProduct] = useState<any | null>(null)
-  const [categories, setCategories] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -23,10 +22,9 @@ export default function ProductEditClient({ id }: ProductEditClientProps) {
         setLoading(true)
         setError(null)
 
-        const [pRes, cRes] = await Promise.all([
-          fetch(`/api/admin/products/${encodeURIComponent(id)}`),
-          fetch(`/api/admin/categories`),
-        ])
+        const pRes = await fetch(
+          `/api/admin/products/${encodeURIComponent(id)}`,
+        )
 
         if (!pRes.ok) {
           const text = await pRes.text().catch(() => "")
@@ -39,14 +37,6 @@ export default function ProductEditClient({ id }: ProductEditClientProps) {
         }
         const pJson = await pRes.json().catch(() => null as any)
         const prod = pJson?.product ?? null
-
-        if (!cRes.ok) {
-          if (!cancelled) setCategories([])
-        } else {
-          const cJson = await cRes.json().catch(() => ({ product_categories: [] }))
-          if (!cancelled)
-            setCategories(cJson.product_categories ?? [])
-        }
 
         if (!cancelled) setProduct(prod)
       } catch (e: any) {
@@ -233,7 +223,7 @@ export default function ProductEditClient({ id }: ProductEditClientProps) {
           </label>
         </div>
 
-        <CategoryMultiSelect defaultSelectedIds={[...selectedCats]} allCategories={categories} />
+        <CategoryMultiSelect defaultSelectedIds={[...selectedCats]} />
 
         {existingImages.length > 0 && (
           <div>
