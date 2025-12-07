@@ -1,18 +1,45 @@
 import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
 
-function env() {
-  const base = process.env.MEDUSA_BACKEND_URL
-  const token = process.env.MEDUSA_ADMIN_TOKEN
-  if (!base || !token) throw new Error("MEDUSA_BACKEND_URL or MEDUSA_ADMIN_TOKEN missing")
+function requireEnv() {
+  const baseRaw = process.env.MEDUSA_BACKEND_URL || ""
+  const tokenRaw =
+    process.env.MEDUSA_ADMIN_TOKEN || process.env.MEDUSA_ADMIN_API_TOKEN || ""
+  const base = baseRaw.trim().replace(/\/+$/, "")
+  const token = tokenRaw.trim()
+  if (!base || !token) {
+    throw new Error("MEDUSA_BACKEND_URL or MEDUSA_ADMIN_TOKEN missing")
+  }
   return { base, token }
+}
+
+async function loginAndGetCookie(base: string): Promise<string | null> {
+  const email = process.env.MEDUSA_ADMIN_EMAIL || process.env.ADMIN_UI_EMAIL
+  const password =
+    process.env.MEDUSA_ADMIN_PASSWORD || process.env.ADMIN_UI_PASSWORD
+  if (!email || !password) return null
+  try {
+    const res = await fetch(`${base}/admin/auth`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email, password }),
+      cache: "no-store",
+    })
+    if (!res.ok) return null
+    const cookie = res.headers.get("set-cookie")
+    return cookie || null
+  } catch {
+    return null
+  }
 }
 
 export async function GET(_req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
-    const { base, token } = env()
+    const { base, token } = requireEnv()
     const { id } = await context.params
-    const res = await fetch(`${base}/admin/products/${id}`, {
+    const url = `${base}/admin/products/${encodeURIComponent(id)}`
+
+    let res = await fetch(url, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -22,8 +49,37 @@ export async function GET(_req: NextRequest, context: { params: Promise<{ id: st
       },
       cache: "no-store",
     })
+
+    if (res.status === 401) {
+      try {
+        const basic = Buffer.from(`${token}:`).toString("base64")
+        const resBasic = await fetch(url, {
+          method: "GET",
+          headers: { Authorization: `Basic ${basic}` },
+          cache: "no-store",
+        })
+        if (resBasic.status !== 401) {
+          res = resBasic
+        }
+      } catch {}
+
+      if (res.status === 401) {
+        const cookie = await loginAndGetCookie(base)
+        if (cookie) {
+          res = await fetch(url, {
+            method: "GET",
+            headers: { cookie },
+            cache: "no-store",
+          })
+        }
+      }
+    }
+
     const text = await res.text()
-    return new NextResponse(text, { status: res.status, headers: { "content-type": res.headers.get("content-type") || "application/json" } })
+    return new NextResponse(text, {
+      status: res.status,
+      headers: { "content-type": res.headers.get("content-type") || "application/json" },
+    })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || String(e) }, { status: 500 })
   }
@@ -31,7 +87,7 @@ export async function GET(_req: NextRequest, context: { params: Promise<{ id: st
 
 export async function POST(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
-    const { base, token } = env()
+    const { base, token } = requireEnv()
 
     let body: any = {}
     const ct = req.headers.get("content-type") || ""
@@ -131,7 +187,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
 
 export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
-    const { base, token } = env()
+    const { base, token } = requireEnv()
     const { id } = await context.params
     const res = await fetch(`${base}/admin/products/${id}`, {
       method: "DELETE",

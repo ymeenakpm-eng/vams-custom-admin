@@ -130,9 +130,23 @@ const columns: ColumnDef[] = [
   },
 ];
 
+const defaultVisibleKeys = new Set<string>([
+  "id",
+  "title",
+  "subtitle",
+  "status",
+  "external_id",
+  "description",
+  "handle",
+  "thumbnail",
+  "variants",
+  "first_variant_id",
+  "sales_channels",
+]);
+
 export default function ProductsTable({ products }: ProductsTableProps) {
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(
-    () => new Set(columns.map((c) => c.key)),
+    () => new Set(defaultVisibleKeys),
   );
   const [copiedProductId, setCopiedProductId] = useState<string | null>(null);
 
