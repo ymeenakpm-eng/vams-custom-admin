@@ -44,10 +44,13 @@ export async function GET(req: NextRequest) {
     const limit = sp.get("limit") || ""
     const offset = sp.get("offset") || ""
     const order = sp.get("order") || ""
+    const expand = sp.get("expand") || ""
+
     if (q) url.searchParams.set("q", q)
     if (limit) url.searchParams.set("limit", limit)
     if (offset) url.searchParams.set("offset", offset)
     if (order) url.searchParams.set("order", order)
+    if (expand) url.searchParams.set("expand", expand)
 
     let res = await fetch(url.toString(), {
       method: "GET",
@@ -220,9 +223,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // For Retool calls, if no explicit variants/options are provided, create a
-    // minimal default option + variant so Medusa will accept the product.
-    if (fromRetool) {
+    // If no explicit variants/options are provided, create a minimal
+    // default option + variant so Medusa will accept the product. This
+    // applies both to Retool JSON calls and to the dashboard form.
+    const needsDefaultVariant = fromRetool || isForm
+    if (needsDefaultVariant) {
       const hasVariants = Array.isArray(body.variants) && body.variants.length > 0
       const hasOptions = Array.isArray(body.options) && body.options.length > 0
       const title = (body.title || "Untitled Product").toString()

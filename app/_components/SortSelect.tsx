@@ -6,6 +6,8 @@ const OPTIONS: { value: string; label: string }[] = [
   { value: "created_asc", label: "Oldest" },
   { value: "title_asc", label: "Title A→Z" },
   { value: "title_desc", label: "Title Z→A" },
+  { value: "updated_desc", label: "Last updated (newest)" },
+  { value: "updated_asc", label: "Last updated (oldest)" },
 ]
 
 export default function SortSelect() {

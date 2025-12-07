@@ -14,6 +14,13 @@ export default function ProductEditClient({ id }: ProductEditClientProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const effectiveId =
+    typeof id === "string" && id && id !== "undefined"
+      ? id
+      : typeof window !== "undefined"
+        ? window.location.pathname.split("/").filter(Boolean).pop() || ""
+        : ""
+
   useEffect(() => {
     let cancelled = false
 
@@ -22,8 +29,16 @@ export default function ProductEditClient({ id }: ProductEditClientProps) {
         setLoading(true)
         setError(null)
 
+        if (!effectiveId) {
+          if (!cancelled) {
+            setError("Missing product id in URL")
+            setProduct(null)
+          }
+          return
+        }
+
         const pRes = await fetch(
-          `/api/admin/products/${encodeURIComponent(id)}`,
+          `/api/admin/products/${encodeURIComponent(effectiveId)}`,
         )
 
         if (!pRes.ok) {
@@ -51,7 +66,7 @@ export default function ProductEditClient({ id }: ProductEditClientProps) {
     return () => {
       cancelled = true
     }
-  }, [id])
+  }, [effectiveId])
 
   if (loading) {
     return (

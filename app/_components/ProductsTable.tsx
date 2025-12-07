@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import ConfirmDeleteButton from "./ConfirmDeleteButton";
 
 interface ProductsTableProps {
@@ -12,6 +12,12 @@ interface ColumnDef {
   label: string;
   render: (p: any) => React.ReactNode;
   className?: string;
+}
+
+interface CsvColumn {
+  key: string;
+  header: string;
+  get: (p: any) => string | number | null | undefined;
 }
 
 const columns: ColumnDef[] = [
@@ -145,11 +151,85 @@ const defaultVisibleKeys = new Set<string>([
   "sales_channels",
 ]);
 
+const csvColumns: CsvColumn[] = [
+  { key: "id", header: "ID", get: (p) => p.id },
+  { key: "title", header: "Title", get: (p) => p.title },
+  { key: "status", header: "Status", get: (p) => p.status },
+  { key: "external_id", header: "External ID", get: (p) => p.external_id },
+  { key: "handle", header: "Handle", get: (p) => p.handle },
+  {
+    key: "first_variant_id",
+    header: "First variant ID",
+    get: (p) =>
+      Array.isArray(p.variants) && p.variants.length > 0 ? p.variants[0].id : "",
+  },
+  { key: "created_at", header: "Created at", get: (p) => p.created_at },
+  { key: "updated_at", header: "Updated at", get: (p) => p.updated_at },
+];
+
 export default function ProductsTable({ products }: ProductsTableProps) {
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(
     () => new Set(defaultVisibleKeys),
   );
   const [copiedProductId, setCopiedProductId] = useState<string | null>(null);
+
+  // Load saved column preferences on mount
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem("vams_products_visible_columns");
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length) {
+        setVisibleKeys(new Set<string>(parsed));
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // Persist preferences whenever they change
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(
+        "vams_products_visible_columns",
+        JSON.stringify(Array.from(visibleKeys)),
+      );
+    } catch {
+      // ignore
+    }
+  }, [visibleKeys]);
+
+  const exportCsv = () => {
+    if (products.length === 0) return;
+
+    const escape = (value: any) => {
+      if (value == null) return "";
+      const s = String(value);
+      if (/[",\n]/.test(s)) {
+        return '"' + s.replace(/"/g, '""') + '"';
+      }
+      return s;
+    };
+
+    const header = csvColumns.map((c) => escape(c.header)).join(",");
+    const rows = products.map((p: any) =>
+      csvColumns.map((c) => escape(c.get(p))).join(","),
+    );
+    const csv = [header, ...rows].join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+    a.download = `products-${ts}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   const toggleKey = (key: string) => {
     setVisibleKeys((prev) => {
@@ -183,7 +263,17 @@ export default function ProductsTable({ products }: ProductsTableProps) {
         </div>
       </details>
 
-      <div className="bg-white border rounded-lg shadow-sm overflow-auto max-h-[calc(100vh-14rem)] w-full max-w-none">
+      <div className="flex items-center justify-end text-xs text-gray-600">
+        <button
+          type="button"
+          onClick={exportCsv}
+          className="inline-flex items-center rounded-md bg-cyan-500 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-cyan-600"
+        >
+          Export CSV
+        </button>
+      </div>
+
+      <div className="bg-white border rounded-lg shadow-sm overflow-auto max-h-[calc(100vh-14rem)] w-full max-w-none mt-2">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 sticky top-0 z-10">
             <tr>
@@ -212,40 +302,42 @@ export default function ProductsTable({ products }: ProductsTableProps) {
                     {col.render(p)}
                   </td>
                 ))}
-                <td className="px-3 py-2.5 border-t space-x-2 whitespace-nowrap">
-                  <a
-                    href={`/products/${p.id}`}
-                    className="text-cyan-700 hover:underline mr-1"
-                  >
-                    Edit
-                  </a>
-                  <ConfirmDeleteButton
-                    action={`/api/admin/products/${p.id}`}
-                    label="Delete"
-                  />
-                  {Array.isArray(p.variants) && p.variants.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        try {
-                          await navigator.clipboard.writeText(p.variants[0].id);
-                          setCopiedProductId(p.id);
-                          setTimeout(() => {
-                            setCopiedProductId((prev) =>
-                              prev === p.id ? null : prev,
-                            );
-                          }, 1500);
-                        } catch {
-                          // ignore
-                        }
-                      }}
-                      className="ml-1 text-[11px] text-cyan-700 hover:text-cyan-900 underline-offset-2 hover:underline"
+                <td className="px-3 py-2.5 border-t whitespace-nowrap">
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={`/products/${p.id}`}
+                      className="inline-flex items-center rounded-md bg-cyan-500 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-cyan-600"
                     >
-                      {copiedProductId === p.id
-                        ? "Copied"
-                        : "Copy first variant ID"}
-                    </button>
-                  )}
+                      Edit
+                    </a>
+                    <ConfirmDeleteButton
+                      action={`/api/admin/products/${p.id}`}
+                      label="Delete"
+                    />
+                    {Array.isArray(p.variants) && p.variants.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(p.variants[0].id);
+                            setCopiedProductId(p.id);
+                            setTimeout(() => {
+                              setCopiedProductId((prev) =>
+                                prev === p.id ? null : prev,
+                              );
+                            }, 1500);
+                          } catch {
+                            // ignore
+                          }
+                        }}
+                        className="inline-flex items-center rounded-md bg-cyan-500 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-cyan-600"
+                      >
+                        {copiedProductId === p.id
+                          ? "Copied"
+                          : "Copy first variant ID"}
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}

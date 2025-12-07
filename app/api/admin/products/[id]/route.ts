@@ -169,7 +169,16 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     if (!res.ok) {
       const text = await res.text()
       if (referer.includes("/products/")) {
-        return NextResponse.redirect(new URL(`/products/${id}?error=1`, req.url))
+        let msg = ""
+        try {
+          msg = JSON.parse(text)?.message || ""
+        } catch {
+          msg = text || ""
+        }
+        const u = new URL(`/products/${id}`, req.url)
+        u.searchParams.set("error", "1")
+        if (msg) u.searchParams.set("msg", String(msg).slice(0, 160))
+        return NextResponse.redirect(u, 303)
       }
       return NextResponse.json({ error: text }, { status: res.status })
     }
