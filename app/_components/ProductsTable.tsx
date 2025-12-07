@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import ConfirmDeleteButton from "./ConfirmDeleteButton";
 
 interface ProductsTableProps {
   products: any[];
@@ -211,13 +212,17 @@ export default function ProductsTable({ products }: ProductsTableProps) {
                     {col.render(p)}
                   </td>
                 ))}
-                <td className="px-3 py-2.5 border-t">
+                <td className="px-3 py-2.5 border-t space-x-2 whitespace-nowrap">
                   <a
                     href={`/products/${p.id}`}
-                    className="text-cyan-700 hover:underline mr-3"
+                    className="text-cyan-700 hover:underline mr-1"
                   >
                     Edit
                   </a>
+                  <ConfirmDeleteButton
+                    action={`/api/admin/products/${p.id}`}
+                    label="Delete"
+                  />
                   {Array.isArray(p.variants) && p.variants.length > 0 && (
                     <button
                       type="button"
@@ -226,15 +231,19 @@ export default function ProductsTable({ products }: ProductsTableProps) {
                           await navigator.clipboard.writeText(p.variants[0].id);
                           setCopiedProductId(p.id);
                           setTimeout(() => {
-                            setCopiedProductId((prev) => (prev === p.id ? null : prev));
+                            setCopiedProductId((prev) =>
+                              prev === p.id ? null : prev,
+                            );
                           }, 1500);
                         } catch {
                           // ignore
                         }
                       }}
-                      className="text-[11px] text-cyan-700 hover:text-cyan-900 underline-offset-2 hover:underline"
+                      className="ml-1 text-[11px] text-cyan-700 hover:text-cyan-900 underline-offset-2 hover:underline"
                     >
-                      {copiedProductId === p.id ? "Copied" : "Copy first variant ID"}
+                      {copiedProductId === p.id
+                        ? "Copied"
+                        : "Copy first variant ID"}
                     </button>
                   )}
                 </td>

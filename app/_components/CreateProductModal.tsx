@@ -13,13 +13,38 @@ export default function CreateProductModal() {
         New Product
       </button>
       {open && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)", display: "grid", placeItems: "center", zIndex: 50 }} onClick={() => setOpen(false)}>
-          <div style={{ background: "white", padding: 16, borderRadius: 8, width: 420 }} onClick={(e) => e.stopPropagation()}>
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,.4)",
+            display: "grid",
+            placeItems: "center",
+            zIndex: 50,
+          }}
+          onClick={() => setOpen(false)}
+        >
+          <div
+            style={{
+              background: "white",
+              padding: 16,
+              borderRadius: 8,
+              width: 420,
+              maxHeight: "90vh",
+              overflowY: "auto",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
               <div style={{ fontWeight: 600 }}>Create product</div>
               <button onClick={() => setOpen(false)} className="text-gray-500 hover:text-gray-700">✕</button>
             </div>
-            <form method="POST" action="/api/admin/products" style={{ display: "grid", gap: 10 }} onSubmit={() => setOpen(false)}>
+            <form
+              method="POST"
+              action="/api/admin/products"
+              style={{ display: "grid", gap: 10 }}
+              onSubmit={() => setOpen(false)}
+            >
               <label>
                 <div>Title</div>
                 <input name="title" required className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
