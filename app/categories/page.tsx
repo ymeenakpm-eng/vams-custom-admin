@@ -24,9 +24,12 @@ async function fetchCategories(params: { q?: string; offset?: number; limit?: nu
     if (!res.ok) {
       return { categories: [] as any[], count: 0, limit: params.limit ?? 20, offset: params.offset ?? 0 }
     }
-    const data = await res.json().catch(() => ({ product_categories: [], count: 0 }))
-    const cats = data.product_categories ?? []
-    const count = typeof data.count === "number" ? data.count : cats.length
+    const data = await res.json().catch(() => ({ categories: [], product_categories: [], count: 0 }))
+    const cats =
+      (Array.isArray((data as any).product_categories) && (data as any).product_categories.length
+        ? (data as any).product_categories
+        : (data as any).categories) || []
+    const count = typeof (data as any).count === "number" ? (data as any).count : cats.length
     const limit = params.limit ?? 20
     const offset = params.offset ?? 0
     return { categories: cats, count, limit, offset }
@@ -242,7 +245,7 @@ export default async function CategoriesPage(props: any) {
             <div className="flex items-end gap-2 mt-1">
               <button
                 type="submit"
-                className="inline-flex items-center rounded-md bg-cyan-500 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-cyan-600"
+                className="inline-flex items-center rounded-md bg-cyan-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-cyan-600"
               >
                 Apply
               </button>
@@ -271,7 +274,7 @@ export default async function CategoriesPage(props: any) {
         <form method="POST" action="/api/admin/categories" style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <input name="name" placeholder="New category name" required className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
           <input name="handle" placeholder="handle (optional)" className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" />
-          <button type="submit" className="bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-2 rounded-md text-sm shadow">New category</button>
+          <button type="submit" className="bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-2 rounded-md text-sm shadow">Create</button>
         </form>
       </section>
 

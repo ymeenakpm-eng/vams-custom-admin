@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
   try {
     const { base, token } = env()
     const sp = req.nextUrl.searchParams
+    // Use Medusa product-categories plugin under /admin/product-categories
     const url = new URL(`${base}/admin/product-categories`)
 
     const q = sp.get("q") || ""
@@ -25,9 +26,6 @@ export async function GET(req: NextRequest) {
     if (q) url.searchParams.set("q", q)
     if (limit) url.searchParams.set("limit", limit)
     if (offset) url.searchParams.set("offset", offset)
-    // Ask Medusa to include product counts on each category, so the
-    // dashboard can show how many products belong to each one.
-    url.searchParams.set("with_count", "true")
 
     if (!order && sort) {
       // Map UI sort values to Medusa order param
@@ -59,50 +57,48 @@ export async function GET(req: NextRequest) {
         if (resBasic.status !== 401) {
           res = resBasic
         } else {
-          // try cookie fallback
           const email = process.env.MEDUSA_ADMIN_EMAIL || process.env.ADMIN_UI_EMAIL
           const password = process.env.MEDUSA_ADMIN_PASSWORD || process.env.ADMIN_UI_PASSWORD
           if (email && password) {
-            const login = await fetch(`${base}/admin/auth`, {
-              method: "POST",
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify({ email, password }),
-              cache: "no-store",
-            })
-            const cookie = login.headers.get("set-cookie")
-            if (cookie) {
-              res = await fetch(url.toString(), { method: "GET", headers: { cookie }, cache: "no-store" })
-            }
+            // First try cookie-based session (some backends allow this)
+            try {
+              const login = await fetch(`${base}/admin/auth`, {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ email, password }),
+                cache: "no-store",
+              })
+              const cookie = login.headers.get("set-cookie")
+              if (cookie) {
+                const resCookie = await fetch(url.toString(), {
+                  method: "GET",
+                  headers: { cookie },
+                  cache: "no-store",
+                })
+                if (resCookie.status !== 401) {
+                  res = resCookie
+                } else {
+                  // If cookie session is not enough, also try using the
+                  // JWT returned by /admin/auth as a Bearer token. This is
+                  // required by some setups/plugins for /admin/categories.
+                  try {
+                    const loginJson: any = await login.clone().json().catch(() => null)
+                    const jwt = loginJson?.token
+                    if (jwt) {
+                      const resJwt = await fetch(url.toString(), {
+                        method: "GET",
+                        headers: { Authorization: `Bearer ${jwt}` },
+                        cache: "no-store",
+                      })
+                      if (resJwt.status !== 401) {
+                        res = resJwt
+                      }
+                    }
+                  } catch {}
+                }
+              }
+            } catch {}
           }
-        }
-      } catch {}
-    }
-
-    // Some Medusa setups (e.g. certain plugin versions) do not support the
-    // `with_count` query param on /admin/product-categories and will return
-    // a 400 invalid_data error mentioning "with_count". In that case, retry
-    // once without with_count so the dashboard still works.
-    if (res.status === 400) {
-      try {
-        const errJson: any = await res.clone().json()
-        const msg = String(errJson?.message || "")
-        if (msg.includes("with_count")) {
-          const urlNoCount = new URL(`${base}/admin/product-categories`)
-          if (q) urlNoCount.searchParams.set("q", q)
-          if (limit) urlNoCount.searchParams.set("limit", limit)
-          if (offset) urlNoCount.searchParams.set("offset", offset)
-          if (order) urlNoCount.searchParams.set("order", order)
-
-          res = await fetch(urlNoCount.toString(), {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "x-medusa-access-token": token,
-              "x-medusa-api-key": token,
-              "x-api-key": token,
-            },
-            cache: "no-store",
-          })
         }
       } catch {}
     }
@@ -133,7 +129,8 @@ export async function POST(req: NextRequest) {
       try { body = await req.json() } catch { body = {} }
     }
 
-    let res = await fetch(`${base}/admin/product-categories`, {
+    // For Medusa v2, create core categories via /admin/categories
+    let res = await fetch(`${base}/admin/categories`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -148,7 +145,7 @@ export async function POST(req: NextRequest) {
     if (res.status === 401) {
       try {
         const basic = Buffer.from(`${token}:`).toString("base64")
-        const resBasic = await fetch(`${base}/admin/product-categories`, {
+        const resBasic = await fetch(`${base}/admin/categories`, {
           method: "POST",
           headers: { Authorization: `Basic ${basic}`, "Content-Type": "application/json" },
           body: JSON.stringify(body),

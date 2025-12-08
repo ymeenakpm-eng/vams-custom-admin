@@ -22,11 +22,11 @@ export default function CategoryMultiSelect({
         const res = await fetch("/api/admin/categories", { cache: "no-store" })
         const data = await res.json().catch(() => ({}))
 
-        const top = (data as any).product_categories
-        const nested = top && (top as any).product_categories
+        const pc = (data as any).product_categories
+        const nested = pc && (pc as any).product_categories
 
-        const fromProductCategories = Array.isArray(top)
-          ? top
+        const fromProductCategories = Array.isArray(pc)
+          ? pc
           : Array.isArray(nested)
           ? nested
           : undefined
