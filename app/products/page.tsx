@@ -186,9 +186,48 @@ export default async function ProductsPage(props: any) {
   const hasNext = !advancedFilterActive && nextOffset < effectiveCount
   const hasPrev = !advancedFilterActive && offset > 0
 
+  const baseParams = { q, sort, limit: String(limit) }
+  const allParams = new URLSearchParams(baseParams)
+  const publishedParams = new URLSearchParams(baseParams)
+  publishedParams.set("status", "published")
+  const draftParams = new URLSearchParams(baseParams)
+  draftParams.set("status", "draft")
+
+  const allHref = `/products?${allParams.toString()}`
+  const publishedHref = `/products?${publishedParams.toString()}`
+  const draftHref = `/products?${draftParams.toString()}`
+
   return (
     <main className="w-full">
       <div className="bg-white border rounded-lg p-4 shadow-sm mb-4 w-full">
+        {/* Overview cards */}
+        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="rounded-md border bg-slate-50 px-3 py-2">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              Total products
+            </div>
+            <div className="mt-1 text-xl font-semibold text-slate-900">
+              {effectiveCount}
+            </div>
+          </div>
+          <div className="rounded-md border bg-slate-50 px-3 py-2">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              Published
+            </div>
+            <div className="mt-1 text-xl font-semibold text-emerald-700">
+              {filteredProducts.filter((p: any) => p.status === "published").length}
+            </div>
+          </div>
+          <div className="rounded-md border bg-slate-50 px-3 py-2">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              Drafts
+            </div>
+            <div className="mt-1 text-xl font-semibold text-amber-700">
+              {filteredProducts.filter((p: any) => p.status === "draft").length}
+            </div>
+          </div>
+        </div>
+
         <div className="flex items-center gap-3 mb-3">
           <h1 className="text-lg font-semibold">Products</h1>
           <CreateProductModal />
@@ -205,6 +244,41 @@ export default async function ProductsPage(props: any) {
           <Suspense fallback={null}>
             <PageSizeSelect values={[10, 20, 50]} />
           </Suspense>
+        </div>
+
+        {/* Quick status filter chips */}
+        <div className="mt-2 flex items-center gap-2 text-xs">
+          <span className="text-[11px] text-gray-500">Status:</span>
+          <a
+            href={allHref}
+            className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-medium ${
+              !status
+                ? "border-cyan-500 bg-cyan-500 text-white shadow-sm"
+                : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+            }`}
+          >
+            All
+          </a>
+          <a
+            href={publishedHref}
+            className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-medium ${
+              status === "published"
+                ? "border-cyan-500 bg-cyan-500 text-white shadow-sm"
+                : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+            }`}
+          >
+            Published
+          </a>
+          <a
+            href={draftHref}
+            className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-medium ${
+              status === "draft"
+                ? "border-cyan-500 bg-cyan-500 text-white shadow-sm"
+                : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+            }`}
+          >
+            Draft
+          </a>
         </div>
 
         {/* Filters (collapsible) */}
