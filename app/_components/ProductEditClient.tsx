@@ -284,7 +284,7 @@ export default function ProductEditClient({ id }: ProductEditClientProps) {
         <input type="hidden" name="intent" value="delete" />
         <button
           type="submit"
-          className="border border-red-300 text-red-600 px-3 py-2 rounded-md text-sm hover:bg-red-50"
+          className="bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-2 rounded-md text-sm"
         >
           Delete
         </button>
