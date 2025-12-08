@@ -90,9 +90,15 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     const { base, token } = requireEnv()
 
     let body: any = {}
+    let selectedCategoryIds: string[] | null = null
     const ct = req.headers.get("content-type") || ""
     if (ct.includes("application/json")) {
       body = await req.json()
+      // Never forward raw category_ids in the main update body; Medusa
+      // doesn't accept this field on /admin/products/:id.
+      if (body && typeof body === "object" && "category_ids" in body) {
+        delete (body as any).category_ids
+      }
     } else if (ct.includes("application/x-www-form-urlencoded")) {
       const fd = await req.formData()
       const intent = String(fd.get("intent") || "")
@@ -164,9 +170,17 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
       if (hsCode) (body as any).hs_code = hsCode
       const originCountry = String(fd.get("origin_country") || "").trim()
       if (originCountry) (body as any).origin_country = originCountry
+
+      // Map selected category_ids from the form into the Medusa
+      // expected shape: categories: [{ id: string }]
       const catIds = fd.getAll("category_ids")?.map(String).filter(Boolean)
-      if (catIds?.length) {
-        ;(body as any).category_ids = catIds
+      if (catIds && catIds.length) {
+        selectedCategoryIds = catIds
+        ;(body as any).categories = catIds.map((id) => ({ id }))
+      } else {
+        selectedCategoryIds = []
+        // If no categories selected, omit categories so existing ones stay unchanged here.
+        // (You could also clear categories by calling the categories batch delete endpoint.)
       }
       // images: accept multiple image_urls fields and/or a combined textarea
       const rawMulti = fd.getAll("image_urls").map((v) => String(v))
@@ -180,7 +194,14 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
         ;(body as any).thumbnail = parts[0]
       }
     } else {
-      try { body = await req.json() } catch { body = {} }
+      try {
+        body = await req.json()
+      } catch {
+        body = {}
+      }
+      if (body && typeof body === "object" && "category_ids" in body) {
+        delete (body as any).category_ids
+      }
     }
 
     const { id } = await context.params
@@ -241,6 +262,29 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
         return NextResponse.redirect(u, 303)
       }
       return NextResponse.json({ error: text }, { status: res.status })
+    }
+
+    // If categories were selected in the form, also call the Medusa
+    // helper endpoint to sync product-category relations. We do this
+    // after the main update, but we ignore failures and surface only
+    // the primary update result in the UI.
+    if (selectedCategoryIds && selectedCategoryIds.length) {
+      try {
+        const catUrl = `${base}/admin/products/${id}/categories`
+        await fetch(catUrl, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          // Medusa product-categories plugin expects `product_category_ids`
+          // when assigning categories to a product.
+          body: JSON.stringify({ product_category_ids: selectedCategoryIds }),
+          cache: "no-store",
+        })
+      } catch {
+        // best-effort only; we don't block on this
+      }
     }
 
     if (referer.includes("/products/")) {

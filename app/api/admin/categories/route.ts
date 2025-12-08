@@ -25,6 +25,9 @@ export async function GET(req: NextRequest) {
     if (q) url.searchParams.set("q", q)
     if (limit) url.searchParams.set("limit", limit)
     if (offset) url.searchParams.set("offset", offset)
+    // Ask Medusa to include product counts on each category, so the
+    // dashboard can show how many products belong to each one.
+    url.searchParams.set("with_count", "true")
 
     if (!order && sort) {
       // Map UI sort values to Medusa order param
@@ -74,6 +77,36 @@ export async function GET(req: NextRequest) {
         }
       } catch {}
     }
+
+    // Some Medusa setups (e.g. certain plugin versions) do not support the
+    // `with_count` query param on /admin/product-categories and will return
+    // a 400 invalid_data error mentioning "with_count". In that case, retry
+    // once without with_count so the dashboard still works.
+    if (res.status === 400) {
+      try {
+        const errJson: any = await res.clone().json()
+        const msg = String(errJson?.message || "")
+        if (msg.includes("with_count")) {
+          const urlNoCount = new URL(`${base}/admin/product-categories`)
+          if (q) urlNoCount.searchParams.set("q", q)
+          if (limit) urlNoCount.searchParams.set("limit", limit)
+          if (offset) urlNoCount.searchParams.set("offset", offset)
+          if (order) urlNoCount.searchParams.set("order", order)
+
+          res = await fetch(urlNoCount.toString(), {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "x-medusa-access-token": token,
+              "x-medusa-api-key": token,
+              "x-api-key": token,
+            },
+            cache: "no-store",
+          })
+        }
+      } catch {}
+    }
+
     const text = await res.text()
     return new NextResponse(text, { status: res.status, headers: { "content-type": res.headers.get("content-type") || "application/json" } })
   } catch (e: any) {

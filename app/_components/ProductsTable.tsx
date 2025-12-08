@@ -139,7 +139,8 @@ const columns: ColumnDef[] = [
     key: "categories",
     label: "Categories",
     render: (p) => {
-      const cats = Array.isArray(p.categories) ? p.categories : [];
+      const sourceCats = (p as any).categories ?? (p as any).product_categories;
+      const cats = Array.isArray(sourceCats) ? sourceCats : [];
       if (!cats.length) return "";
       const first = cats[0];
       const name = first.name || first.title || first.id;

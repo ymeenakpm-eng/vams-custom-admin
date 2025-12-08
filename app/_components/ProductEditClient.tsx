@@ -99,7 +99,9 @@ export default function ProductEditClient({ id }: ProductEditClientProps) {
     )
   }
 
-  const selectedCats = new Set<string>((product.categories || []).map((c: any) => c.id))
+  const rawCats = (product as any).categories ?? (product as any).product_categories ?? []
+  const catArray = Array.isArray(rawCats) ? rawCats : []
+  const selectedCats = new Set<string>(catArray.map((c: any) => c.id).filter(Boolean))
   const existingImages: string[] = (product.images || [])
     .map((im: any) => (typeof im === "string" ? im : im?.url))
     .filter(Boolean)
@@ -238,7 +240,10 @@ export default function ProductEditClient({ id }: ProductEditClientProps) {
           </label>
         </div>
 
-        <CategoryMultiSelect defaultSelectedIds={[...selectedCats]} />
+        <CategoryMultiSelect
+          defaultSelectedIds={[...selectedCats]}
+          initialCategories={catArray}
+        />
 
         {existingImages.length > 0 && (
           <div>
