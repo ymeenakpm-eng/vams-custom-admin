@@ -204,7 +204,10 @@ export async function POST(req: NextRequest) {
       const originCountry = String(fd.get("origin_country") || "").trim()
       if (originCountry) (body as any).origin_country = originCountry
       const catIds = fd.getAll("category_ids")?.map(String).filter(Boolean)
-      if (catIds && catIds.length) body.category_ids = catIds
+      if (catIds && catIds.length) {
+        // Medusa expects an array of category objects: { id: string }
+        ;(body as any).categories = catIds.map((id) => ({ id }))
+      }
 
       // image_urls can be provided as multiple fields or comma/line separated in a single field
       const rawMulti = fd.getAll("image_urls").map((v) => String(v))

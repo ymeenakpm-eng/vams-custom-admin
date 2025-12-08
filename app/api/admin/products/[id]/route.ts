@@ -98,13 +98,39 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
       const intent = String(fd.get("intent") || "")
       if (intent === "delete") {
         const { id } = await context.params
-        const res = await fetch(`${base}/admin/products/${id}`, {
+        const url = `${base}/admin/products/${id}`
+        let res = await fetch(url, {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
           cache: "no-store",
         })
+
+        if (res.status === 401) {
+          try {
+            const basic = Buffer.from(`${token}:`).toString("base64")
+            const resBasic = await fetch(url, {
+              method: "DELETE",
+              headers: { Authorization: `Basic ${basic}` },
+              cache: "no-store",
+            })
+            if (resBasic.status !== 401) {
+              res = resBasic
+            }
+          } catch {}
+
+          if (res.status === 401) {
+            const cookie = await loginAndGetCookie(base)
+            if (cookie) {
+              res = await fetch(url, {
+                method: "DELETE",
+                headers: { cookie },
+                cache: "no-store",
+              })
+            }
+          }
+        }
         const referer = req.headers.get("referer") || ""
-        if (referer.includes(`/products/${id}`)) {
+        if (referer.includes("/products")) {
           return NextResponse.redirect(new URL(`/products?deleted=1`, req.url))
         }
         const text = await res.text()
@@ -158,12 +184,46 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     }
 
     const { id } = await context.params
-    const res = await fetch(`${base}/admin/products/${id}`, {
+    const url = `${base}/admin/products/${id}`
+    let res = await fetch(url, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify(body),
       cache: "no-store",
     })
+
+    if (res.status === 401) {
+      try {
+        const basic = Buffer.from(`${token}:`).toString("base64")
+        const resBasic = await fetch(url, {
+          method: "POST",
+          headers: {
+            Authorization: `Basic ${basic}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+          cache: "no-store",
+        })
+        if (resBasic.status !== 401) {
+          res = resBasic
+        }
+      } catch {}
+
+      if (res.status === 401) {
+        const cookie = await loginAndGetCookie(base)
+        if (cookie) {
+          res = await fetch(url, {
+            method: "POST",
+            headers: {
+              cookie,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(body),
+            cache: "no-store",
+          })
+        }
+      }
+    }
 
     const referer = req.headers.get("referer") || ""
     if (!res.ok) {
@@ -198,14 +258,40 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
   try {
     const { base, token } = requireEnv()
     const { id } = await context.params
-    const res = await fetch(`${base}/admin/products/${id}`, {
+    const url = `${base}/admin/products/${id}`
+    let res = await fetch(url, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
     })
 
+    if (res.status === 401) {
+      try {
+        const basic = Buffer.from(`${token}:`).toString("base64")
+        const resBasic = await fetch(url, {
+          method: "DELETE",
+          headers: { Authorization: `Basic ${basic}` },
+          cache: "no-store",
+        })
+        if (resBasic.status !== 401) {
+          res = resBasic
+        }
+      } catch {}
+
+      if (res.status === 401) {
+        const cookie = await loginAndGetCookie(base)
+        if (cookie) {
+          res = await fetch(url, {
+            method: "DELETE",
+            headers: { cookie },
+            cache: "no-store",
+          })
+        }
+      }
+    }
+
     const referer = req.headers.get("referer") || ""
-    if (referer.includes(`/products/${id}`)) {
+    if (referer.includes("/products")) {
       return NextResponse.redirect(new URL(`/products?deleted=1`, req.url))
     }
 

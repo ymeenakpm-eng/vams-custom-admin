@@ -7,7 +7,9 @@ export default function CreateProductModal() {
   return (
     <>
       <button
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setOpen(true)
+        }}
         className="bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-2 rounded-md text-sm shadow"
       >
         New Product
@@ -43,7 +45,6 @@ export default function CreateProductModal() {
               method="POST"
               action="/api/admin/products"
               style={{ display: "grid", gap: 10 }}
-              onSubmit={() => setOpen(false)}
             >
               <label>
                 <div>Title</div>
