@@ -4,6 +4,7 @@ import PageSizeSelect from "../_components/PageSizeSelect"
 import CreateProductModal from "../_components/CreateProductModal"
 import { Suspense } from "react"
 import ProductsTable from "../_components/ProductsTable"
+import ProductsSavedBanner from "../_components/ProductsSavedBanner"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
@@ -29,8 +30,10 @@ async function fetchProducts(params: { q?: string; offset?: number; limit?: numb
   else if (sort === "updated_desc") order = "-updated_at"
 
   if (order) qs.set("order", order)
-  // Always expand categories and sales channels so filters can use them
-  qs.set("expand", "categories,sales_channels")
+  // Always expand categories/product_categories and sales channels so
+  // filters can use them. product_categories is provided by the
+  // Medusa product-categories plugin.
+  qs.set("expand", "product_categories,categories,sales_channels")
 
   const resolvedBase = base || "http://localhost:3000"
   const url = `${resolvedBase}/api/admin/products?${qs.toString()}`
@@ -146,8 +149,12 @@ export default async function ProductsPage(props: any) {
     }
 
     if (categoryId) {
-      const cats = Array.isArray(p.categories) ? p.categories : []
-      if (!cats.some((c: any) => c.id === categoryId)) return false
+      const rawCats =
+        (Array.isArray((p as any).categories) && (p as any).categories.length
+          ? (p as any).categories
+          : (p as any).product_categories) || []
+      const cats = Array.isArray(rawCats) ? rawCats : []
+      if (!cats.some((c: any) => c && c.id === categoryId)) return false
     }
 
     if (salesChannelId) {
@@ -162,7 +169,13 @@ export default async function ProductsPage(props: any) {
   const categoryOptions: { id: string; title: string }[] = Array.from(
     new Map(
       products
-        .flatMap((p: any) => (Array.isArray(p.categories) ? p.categories : []))
+        .flatMap((p: any) => {
+          const rawCats =
+            (Array.isArray((p as any).categories) && (p as any).categories.length
+              ? (p as any).categories
+              : (p as any).product_categories) || []
+          return Array.isArray(rawCats) ? rawCats : []
+        })
         .filter((c: any) => c && c.id)
         .map((c: any) => [c.id, { id: c.id, title: c.name || c.title || c.id }]),
     ).values(),
@@ -447,11 +460,8 @@ export default async function ProductsPage(props: any) {
           </form>
         </details>
 
-        {sp?.created === "1" && (
-          <div className="mt-3 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-3 py-2">
-            Product added successfully.
-          </div>
-        )}
+        <ProductsSavedBanner />
+
         {sp?.error === "1" && (
           <div className="mt-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2">
             Failed to create product. Please try again.

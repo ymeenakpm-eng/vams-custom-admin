@@ -129,8 +129,8 @@ export async function POST(req: NextRequest) {
       try { body = await req.json() } catch { body = {} }
     }
 
-    // For Medusa v2, create core categories via /admin/categories
-    let res = await fetch(`${base}/admin/categories`, {
+    // Use the product-categories plugin endpoint consistently for create
+    let res = await fetch(`${base}/admin/product-categories`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -145,7 +145,7 @@ export async function POST(req: NextRequest) {
     if (res.status === 401) {
       try {
         const basic = Buffer.from(`${token}:`).toString("base64")
-        const resBasic = await fetch(`${base}/admin/categories`, {
+        const resBasic = await fetch(`${base}/admin/product-categories`, {
           method: "POST",
           headers: { Authorization: `Basic ${basic}`, "Content-Type": "application/json" },
           body: JSON.stringify(body),

@@ -50,7 +50,13 @@ export async function GET(req: NextRequest) {
     if (limit) url.searchParams.set("limit", limit)
     if (offset) url.searchParams.set("offset", offset)
     if (order) url.searchParams.set("order", order)
-    if (expand) url.searchParams.set("expand", expand)
+    if (expand) {
+      url.searchParams.set("expand", expand)
+    } else {
+      // By default, ask Medusa to include product_categories so the
+      // Products table can show category names without extra round trips.
+      url.searchParams.set("expand", "product_categories")
+    }
 
     let res = await fetch(url.toString(), {
       method: "GET",
@@ -168,6 +174,8 @@ export async function POST(req: NextRequest) {
     const { base, token } = requireEnv()
 
     let body: any = {}
+    let selectedCategoryIds: string[] | null = null
+
     const contentType = req.headers.get("content-type") || ""
     const isForm = contentType.includes("application/x-www-form-urlencoded")
     const fromRetool = req.headers.get("x-from-retool") === "1"
@@ -205,7 +213,8 @@ export async function POST(req: NextRequest) {
       if (originCountry) (body as any).origin_country = originCountry
       const catIds = fd.getAll("category_ids")?.map(String).filter(Boolean)
       if (catIds && catIds.length) {
-        // Medusa expects an array of category objects: { id: string }
+        selectedCategoryIds = catIds
+        // Medusa core accepts categories: [{ id }]
         ;(body as any).categories = catIds.map((id) => ({ id }))
       }
 
@@ -325,6 +334,30 @@ export async function POST(req: NextRequest) {
         return NextResponse.redirect(u, 303)
       }
       return NextResponse.json({ error: text }, { status: res.status })
+    }
+
+    // If categories were selected on create, also call the Medusa
+    // product-categories helper to ensure plugin relations are stored.
+    if (selectedCategoryIds && selectedCategoryIds.length) {
+      try {
+        const json: any = JSON.parse(text)
+        const created = json?.product || json
+        const id = created?.id
+        if (id) {
+          const catUrl = `${base}/admin/products/${encodeURIComponent(id)}/categories`
+          await fetch(catUrl, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ product_category_ids: selectedCategoryIds }),
+            cache: "no-store",
+          })
+        }
+      } catch {
+        // best-effort only; don't block creation on this
+      }
     }
 
     // If came from a form submit, redirect back to /products with toast flag

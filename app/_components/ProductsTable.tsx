@@ -228,9 +228,23 @@ const csvColumns: CsvColumn[] = [
 
 export default function ProductsTable({ products }: ProductsTableProps) {
   const [rows, setRows] = useState<any[]>(() => products || []);
-  const [visibleKeys, setVisibleKeys] = useState<Set<string>>(
-    () => new Set(defaultVisibleKeys),
-  );
+  const [visibleKeys, setVisibleKeys] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") {
+      return new Set(defaultVisibleKeys);
+    }
+    try {
+      const raw = window.localStorage.getItem("vams_products_visible_columns");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length) {
+          return new Set<string>(parsed);
+        }
+      }
+    } catch {
+      // ignore and fall back to defaults
+    }
+    return new Set(defaultVisibleKeys);
+  });
   const [copiedProductId, setCopiedProductId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());

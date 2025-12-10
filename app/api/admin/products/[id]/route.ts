@@ -1,3 +1,6 @@
+// app/api/admin/products/[id]/route.ts
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
 import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
 
@@ -33,11 +36,85 @@ async function loginAndGetCookie(base: string): Promise<string | null> {
   }
 }
 
-export async function GET(_req: NextRequest, context: { params: Promise<{ id: string }> }) {
+/**
+ * Helper: attach a product to all selected product-categories
+ * (Medusa product-categories plugin).
+ */
+type PluginSyncResult = { ok: boolean; status?: number; err?: string }
+
+async function syncProductCategories(
+  base: string,
+  token: string,
+  productId: string,
+  categoryIds: string[],
+) : Promise<PluginSyncResult> {
+  if (!categoryIds.length) return { ok: true }
+
+  try {
+    const url = `${base}/admin/custom/products/${encodeURIComponent(
+      productId,
+    )}/categories`
+
+    // 1) Bearer
+    let res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "x-medusa-access-token": token,
+        "x-medusa-api-key": token,
+        "x-api-key": token,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ category_ids: categoryIds }),
+      cache: "no-store",
+    })
+
+    // 2) Basic fallback
+    if (res.status === 401) {
+      try {
+        const basic = Buffer.from(`${token}:`).toString("base64")
+        const resBasic = await fetch(url, {
+          method: "POST",
+          headers: {
+            Authorization: `Basic ${basic}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ category_ids: categoryIds }),
+          cache: "no-store",
+        })
+        if (resBasic.status !== 401) {
+          res = resBasic
+        }
+      } catch {}
+    }
+
+    // 3) Cookie session fallback
+    if (res.status === 401) {
+      const cookie = await loginAndGetCookie(base)
+      if (cookie) {
+        res = await fetch(url, {
+          method: "POST",
+          headers: { cookie, "Content-Type": "application/json" },
+          body: JSON.stringify({ category_ids: categoryIds }),
+          cache: "no-store",
+        })
+      }
+    }
+    return { ok: res.ok, status: res.status }
+  } catch {
+    return { ok: false, err: "network_error" }
+  }
+}
+
+export async function GET(
+  _req: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
   try {
     const { base, token } = requireEnv()
     const { id } = await context.params
-    const url = `${base}/admin/products/${encodeURIComponent(id)}`
+    const baseUrl = `${base}/admin/products/${encodeURIComponent(id)}`
+    const url = `${baseUrl}?expand=categories`
 
     let res = await fetch(url, {
       method: "GET",
@@ -75,35 +152,103 @@ export async function GET(_req: NextRequest, context: { params: Promise<{ id: st
       }
     }
 
+    // If the expanded request still fails (e.g., backend doesn't accept expand),
+    // fall back to the plain product endpoint so the edit page can load.
+    if (!res.ok) {
+      let resPlain = await fetch(baseUrl, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "x-medusa-access-token": token,
+          "x-medusa-api-key": token,
+          "x-api-key": token,
+        },
+        cache: "no-store",
+      })
+
+      if (resPlain.status === 401) {
+        try {
+          const basic = Buffer.from(`${token}:`).toString("base64")
+          const resBasic = await fetch(baseUrl, {
+            method: "GET",
+            headers: { Authorization: `Basic ${basic}` },
+            cache: "no-store",
+          })
+          if (resBasic.status !== 401) {
+            resPlain = resBasic
+          }
+        } catch {}
+
+        if (resPlain.status === 401) {
+          const cookie = await loginAndGetCookie(base)
+          if (cookie) {
+            resPlain = await fetch(baseUrl, {
+              method: "GET",
+              headers: { cookie },
+              cache: "no-store",
+            })
+          }
+        }
+      }
+
+      // Replace response with the plain one if it's more successful
+      if (resPlain.ok) {
+        res = resPlain
+      }
+    }
+
     const text = await res.text()
     return new NextResponse(text, {
       status: res.status,
-      headers: { "content-type": res.headers.get("content-type") || "application/json" },
+      headers: {
+        "content-type": res.headers.get("content-type") || "application/json",
+      },
     })
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message || String(e) }, { status: 500 })
+    return NextResponse.json(
+      { error: e?.message || String(e) },
+      { status: 500 },
+    )
   }
 }
 
-export async function POST(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function POST(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
   try {
     const { base, token } = requireEnv()
+    const { id } = await context.params
 
     let body: any = {}
     let selectedCategoryIds: string[] | null = null
+
     const ct = req.headers.get("content-type") || ""
+
+    // ---------- JSON (Retool / API clients) ----------
     if (ct.includes("application/json")) {
-      body = await req.json()
-      // Never forward raw category_ids in the main update body; Medusa
-      // doesn't accept this field on /admin/products/:id.
+      body = await req.json().catch(() => ({}))
+
+      // If caller passed category_ids, remember them but DO NOT forward
       if (body && typeof body === "object" && "category_ids" in body) {
+        const ids = body.category_ids
+        if (Array.isArray(ids)) {
+          selectedCategoryIds = ids.map(String).filter(Boolean)
+        }
         delete (body as any).category_ids
+        // Also update core shape so either core or plugin persists
+        if (selectedCategoryIds && selectedCategoryIds.length) {
+          ;(body as any).categories = selectedCategoryIds.map((id) => ({ id }))
+        }
       }
-    } else if (ct.includes("application/x-www-form-urlencoded")) {
+    }
+    // ---------- HTML form from dashboard ----------
+    else if (ct.includes("application/x-www-form-urlencoded")) {
       const fd = await req.formData()
       const intent = String(fd.get("intent") || "")
+
+      // Delete from details page
       if (intent === "delete") {
-        const { id } = await context.params
         const url = `${base}/admin/products/${id}`
         let res = await fetch(url, {
           method: "DELETE",
@@ -123,7 +268,6 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
               res = resBasic
             }
           } catch {}
-
           if (res.status === 401) {
             const cookie = await loginAndGetCookie(base)
             if (cookie) {
@@ -135,17 +279,27 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
             }
           }
         }
+
         const referer = req.headers.get("referer") || ""
         if (referer.includes("/products")) {
           return NextResponse.redirect(new URL(`/products?deleted=1`, req.url))
         }
         const text = await res.text()
-        return new NextResponse(text, { status: res.status, headers: { "content-type": res.headers.get("content-type") || "application/json" } })
+        return new NextResponse(text, {
+          status: res.status,
+          headers: {
+            "content-type":
+              res.headers.get("content-type") || "application/json",
+          },
+        })
       }
+
+      // Normal edit form
       body = {
         title: String(fd.get("title") || "").trim(),
         status: String(fd.get("status") || "published"),
-        description: String(fd.get("description") || "").trim() || undefined,
+        description:
+          String(fd.get("description") || "").trim() || undefined,
       }
 
       const handle = String(fd.get("handle") || "").trim()
@@ -171,18 +325,20 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
       const originCountry = String(fd.get("origin_country") || "").trim()
       if (originCountry) (body as any).origin_country = originCountry
 
-      // Map selected category_ids from the form into the Medusa
-      // expected shape: categories: [{ id: string }]
-      const catIds = fd.getAll("category_ids")?.map(String).filter(Boolean)
-      if (catIds && catIds.length) {
-        selectedCategoryIds = catIds
-        ;(body as any).categories = catIds.map((id) => ({ id }))
+      // Category IDs from the multiselect (support both name variants)
+      const rawCat1 = fd.getAll("category_ids")
+      const rawCat2 = fd.getAll("category_ids[]")
+      const mergedCats = [...rawCat1, ...rawCat2].map(String).filter(Boolean)
+      const uniqueCats = Array.from(new Set(mergedCats))
+      if (uniqueCats.length) {
+        selectedCategoryIds = uniqueCats
+        // Also set core shape for compatibility
+        ;(body as any).categories = uniqueCats.map((id) => ({ id }))
       } else {
         selectedCategoryIds = []
-        // If no categories selected, omit categories so existing ones stay unchanged here.
-        // (You could also clear categories by calling the categories batch delete endpoint.)
       }
-      // images: accept multiple image_urls fields and/or a combined textarea
+
+      // Images (textarea / multiple inputs)
       const rawMulti = fd.getAll("image_urls").map((v) => String(v))
       const rawSingle = String(fd.get("image_url") || "")
       const parts = [
@@ -193,22 +349,30 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
         ;(body as any).images = parts
         ;(body as any).thumbnail = parts[0]
       }
-    } else {
-      try {
-        body = await req.json()
-      } catch {
-        body = {}
-      }
+    }
+    // ---------- Fallback ----------
+    else {
+      body = await req.json().catch(() => ({}))
       if (body && typeof body === "object" && "category_ids" in body) {
+        const ids = body.category_ids
+        if (Array.isArray(ids)) {
+          selectedCategoryIds = ids.map(String).filter(Boolean)
+        }
         delete (body as any).category_ids
+        if (selectedCategoryIds && selectedCategoryIds.length) {
+          ;(body as any).categories = selectedCategoryIds.map((id) => ({ id }))
+        }
       }
     }
 
-    const { id } = await context.params
+    // Main product update
     const url = `${base}/admin/products/${id}`
     let res = await fetch(url, {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify(body),
       cache: "no-store",
     })
@@ -247,6 +411,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     }
 
     const referer = req.headers.get("referer") || ""
+
     if (!res.ok) {
       const text = await res.text()
       if (referer.includes("/products/")) {
@@ -264,41 +429,44 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
       return NextResponse.json({ error: text }, { status: res.status })
     }
 
-    // If categories were selected in the form, also call the Medusa
-    // helper endpoint to sync product-category relations. We do this
-    // after the main update, but we ignore failures and surface only
-    // the primary update result in the UI.
+    // After successful update, sync categories via product-categories plugin
+    let pluginRes: PluginSyncResult | null = null
     if (selectedCategoryIds && selectedCategoryIds.length) {
-      try {
-        const catUrl = `${base}/admin/products/${id}/categories`
-        await fetch(catUrl, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          // Medusa product-categories plugin expects `product_category_ids`
-          // when assigning categories to a product.
-          body: JSON.stringify({ product_category_ids: selectedCategoryIds }),
-          cache: "no-store",
-        })
-      } catch {
-        // best-effort only; we don't block on this
-      }
+      pluginRes = await syncProductCategories(base, token, id, selectedCategoryIds)
     }
 
     if (referer.includes("/products/")) {
-      return NextResponse.redirect(new URL(`/products/${id}?saved=1`, req.url))
+      const u = new URL(`/products`, req.url)
+      u.searchParams.set("saved", "1")
+      if (pluginRes !== null) {
+        u.searchParams.set("pc", pluginRes.ok ? "1" : "0")
+        if (pluginRes.status != null) u.searchParams.set("pc_status", String(pluginRes.status))
+        if (pluginRes.err) u.searchParams.set("pc_err", pluginRes.err.slice(0, 80))
+      }
+      if (Array.isArray(selectedCategoryIds)) {
+        u.searchParams.set("cat_count", String(selectedCategoryIds.length))
+        if (selectedCategoryIds.length) u.searchParams.set("cat0", selectedCategoryIds[0])
+      }
+      return NextResponse.redirect(u, 303)
     }
 
     const text = await res.text()
-    return new NextResponse(text, { status: 200, headers: { "content-type": "application/json" } })
+    return new NextResponse(text, {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    })
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message || String(e) }, { status: 500 })
+    return NextResponse.json(
+      { error: e?.message || String(e) },
+      { status: 500 },
+    )
   }
 }
 
-export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
   try {
     const { base, token } = requireEnv()
     const { id } = await context.params
@@ -340,8 +508,17 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
     }
 
     const text = await res.text()
-    return new NextResponse(text, { status: res.status, headers: { "content-type": res.headers.get("content-type") || "application/json" } })
+    return new NextResponse(text, {
+      status: res.status,
+      headers: {
+        "content-type":
+          res.headers.get("content-type") || "application/json",
+      },
+    })
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message || String(e) }, { status: 500 })
+    return NextResponse.json(
+      { error: e?.message || String(e) },
+      { status: 500 },
+    )
   }
 }
