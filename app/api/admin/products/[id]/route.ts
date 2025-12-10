@@ -100,7 +100,17 @@ async function syncProductCategories(
         })
       }
     }
-    return { ok: res.ok, status: res.status }
+
+    let err: string | undefined
+    if (!res.ok) {
+      try {
+        err = await res.text()
+      } catch {
+        err = undefined
+      }
+    }
+
+    return { ok: res.ok, status: res.status, err }
   } catch {
     return { ok: false, err: "network_error" }
   }
