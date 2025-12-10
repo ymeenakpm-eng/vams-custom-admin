@@ -72,7 +72,30 @@ const columns: ColumnDef[] = [
   {
     key: "thumbnail",
     label: "Thumbnail",
-    render: (p) => p.thumbnail,
+    render: (p) => {
+      const url = typeof p.thumbnail === "string" ? p.thumbnail.trim() : ""
+      if (!url) {
+        return <span className="text-[11px] text-gray-400">No image</span>
+      }
+      return (
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-2 max-w-[180px]"
+        >
+          <span className="block h-8 w-8 flex-shrink-0 overflow-hidden rounded border border-gray-200 bg-gray-50">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={url}
+              alt={p.title || "Thumbnail"}
+              className="h-full w-full object-cover"
+            />
+          </span>
+          <span className="font-mono text-[10px] break-all truncate">{url}</span>
+        </a>
+      )
+    },
     className:
       "font-mono text-[11px] break-all max-w-[160px] truncate align-top",
   },
@@ -141,7 +164,9 @@ const columns: ColumnDef[] = [
     render: (p) => {
       const sourceCats = (p as any).categories ?? (p as any).product_categories;
       const cats = Array.isArray(sourceCats) ? sourceCats : [];
-      if (!cats.length) return "";
+      if (!cats.length) {
+        return <span className="text-[11px] text-gray-400">No category</span>;
+      }
       const first = cats[0];
       const name = first.name || first.title || first.id;
       const allNames = cats
