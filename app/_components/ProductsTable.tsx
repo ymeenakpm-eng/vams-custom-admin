@@ -144,11 +144,16 @@ const columns: ColumnDef[] = [
       if (!cats.length) return "";
       const first = cats[0];
       const name = first.name || first.title || first.id;
+      const allNames = cats
+        .map((c: any) => c.name || c.title || c.id)
+        .filter(Boolean)
+        .join(", ");
       const params = new URLSearchParams({ id_contains: first.id || "" });
       return (
         <a
           href={`/categories?${params.toString()}`}
           className="text-xs text-cyan-700 hover:text-cyan-900 hover:underline"
+          title={allNames}
         >
           {name}
           {cats.length > 1 ? ` +${cats.length - 1}` : ""}

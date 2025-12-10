@@ -61,10 +61,13 @@ export async function GET(req: NextRequest) {
     const limitIndex = params.length - 1
     const offsetIndex = params.length
 
-    const listSql = `select pc.*, coalesce(count(pcp.product_id), 0)::int as product_count
+    const listSql = `select pc.*, coalesce(count(p.id), 0)::int as product_count
                        from product_category pc
                        left join product_category_product pcp
                          on pc.id = pcp.product_category_id
+                       left join product p
+                         on p.id = pcp.product_id
+                        and p.deleted_at is null
                       where ${where.join(" and ")}
                       group by pc.id
                       order by ${orderBy}
