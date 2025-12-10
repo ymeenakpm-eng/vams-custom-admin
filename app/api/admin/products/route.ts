@@ -53,9 +53,9 @@ export async function GET(req: NextRequest) {
     if (expand) {
       url.searchParams.set("expand", expand)
     } else {
-      // By default, ask Medusa to include product_categories so the
+      // By default, ask Medusa to include categories so the
       // Products table can show category names without extra round trips.
-      url.searchParams.set("expand", "product_categories")
+      url.searchParams.set("expand", "categories,product_categories")
     }
 
     let res = await fetch(url.toString(), {
