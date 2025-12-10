@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
+import { Pool } from "pg"
 
 function env() {
   const baseRaw = process.env.MEDUSA_BACKEND_URL || ""
@@ -10,101 +11,77 @@ function env() {
   return { base, token }
 }
 
+let pgPool: Pool | null = null
+
+function getPgPool(): Pool {
+  if (pgPool) return pgPool
+  const conn = process.env.PG_CONN_STRING || ""
+  if (!conn.trim()) {
+    throw new Error("PG_CONN_STRING missing in environment")
+  }
+  pgPool = new Pool({ connectionString: conn })
+  return pgPool
+}
+
 export async function GET(req: NextRequest) {
   try {
-    const { base, token } = env()
     const sp = req.nextUrl.searchParams
-    // Use Medusa product-categories plugin under /admin/product-categories
-    const url = new URL(`${base}/admin/product-categories`)
 
-    const q = sp.get("q") || ""
-    const limit = sp.get("limit") || ""
-    const offset = sp.get("offset") || ""
-    const sort = sp.get("sort") || ""
-    let order = sp.get("order") || ""
+    const q = (sp.get("q") || "").trim()
+    const limit = Number(sp.get("limit") || 20) || 20
+    const offset = Number(sp.get("offset") || 0) || 0
+    const sort = sp.get("sort") || "created_desc"
 
-    if (q) url.searchParams.set("q", q)
-    if (limit) url.searchParams.set("limit", limit)
-    if (offset) url.searchParams.set("offset", offset)
+    const pg = getPgPool()
 
-    if (!order && sort) {
-      // Map UI sort values to Medusa order param
-      if (sort === "created_asc") order = "created_at"
-      else if (sort === "created_desc") order = "-created_at"
-      else if (sort === "name_asc") order = "name"
-      else if (sort === "name_desc") order = "-name"
+    const where: string[] = ["pc.deleted_at is null"]
+    const params: any[] = []
+
+    if (q) {
+      params.push(`%${q.toLowerCase()}%`)
+      where.push("(lower(pc.name) like $" + params.length + " or lower(pc.handle) like $" + params.length + ")")
     }
-    if (order) url.searchParams.set("order", order)
 
-    let res = await fetch(url.toString(), {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "x-medusa-access-token": token,
-        "x-medusa-api-key": token,
-        "x-api-key": token,
+    let orderBy = "pc.created_at desc"
+    if (sort === "created_asc") orderBy = "pc.created_at asc"
+    else if (sort === "created_desc") orderBy = "pc.created_at desc"
+    else if (sort === "name_asc") orderBy = "pc.name asc"
+    else if (sort === "name_desc") orderBy = "pc.name desc"
+
+    // Count total categories first
+    const countSql = `select count(*) as count
+                        from product_category pc
+                       where ${where.join(" and ")}`
+    const countRes = await pg.query(countSql, params)
+    const total = Number(countRes.rows[0]?.count || 0)
+
+    // Fetch paginated list with product counts
+    params.push(limit)
+    params.push(offset)
+    const limitIndex = params.length - 1
+    const offsetIndex = params.length
+
+    const listSql = `select pc.*, coalesce(count(pcp.product_id), 0)::int as product_count
+                       from product_category pc
+                       left join product_category_product pcp
+                         on pc.id = pcp.product_category_id
+                      where ${where.join(" and ")}
+                      group by pc.id
+                      order by ${orderBy}
+                      limit $${limitIndex}
+                     offset $${offsetIndex}`
+
+    const listRes = await pg.query(listSql, params)
+
+    return NextResponse.json(
+      {
+        categories: listRes.rows,
+        count: total,
+        limit,
+        offset,
       },
-      cache: "no-store",
-    })
-    if (res.status === 401) {
-      try {
-        const basic = Buffer.from(`${token}:`).toString("base64")
-        const resBasic = await fetch(url.toString(), {
-          method: "GET",
-          headers: { Authorization: `Basic ${basic}` },
-          cache: "no-store",
-        })
-        if (resBasic.status !== 401) {
-          res = resBasic
-        } else {
-          const email = process.env.MEDUSA_ADMIN_EMAIL || process.env.ADMIN_UI_EMAIL
-          const password = process.env.MEDUSA_ADMIN_PASSWORD || process.env.ADMIN_UI_PASSWORD
-          if (email && password) {
-            // First try cookie-based session (some backends allow this)
-            try {
-              const login = await fetch(`${base}/admin/auth`, {
-                method: "POST",
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({ email, password }),
-                cache: "no-store",
-              })
-              const cookie = login.headers.get("set-cookie")
-              if (cookie) {
-                const resCookie = await fetch(url.toString(), {
-                  method: "GET",
-                  headers: { cookie },
-                  cache: "no-store",
-                })
-                if (resCookie.status !== 401) {
-                  res = resCookie
-                } else {
-                  // If cookie session is not enough, also try using the
-                  // JWT returned by /admin/auth as a Bearer token. This is
-                  // required by some setups/plugins for /admin/categories.
-                  try {
-                    const loginJson: any = await login.clone().json().catch(() => null)
-                    const jwt = loginJson?.token
-                    if (jwt) {
-                      const resJwt = await fetch(url.toString(), {
-                        method: "GET",
-                        headers: { Authorization: `Bearer ${jwt}` },
-                        cache: "no-store",
-                      })
-                      if (resJwt.status !== 401) {
-                        res = resJwt
-                      }
-                    }
-                  } catch {}
-                }
-              }
-            } catch {}
-          }
-        }
-      } catch {}
-    }
-
-    const text = await res.text()
-    return new NextResponse(text, { status: res.status, headers: { "content-type": res.headers.get("content-type") || "application/json" } })
+      { status: 200 },
+    )
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || String(e) }, { status: 500 })
   }

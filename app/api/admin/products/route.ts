@@ -1,5 +1,18 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
+import { Pool } from "pg"
+
+let pgPool: Pool | null = null
+
+function getPgPool(): Pool {
+  if (pgPool) return pgPool
+  const conn = process.env.PG_CONN_STRING || ""
+  if (!conn.trim()) {
+    throw new Error("PG_CONN_STRING missing in environment")
+  }
+  pgPool = new Pool({ connectionString: conn })
+  return pgPool
+}
 
 function requireEnv() {
   const baseRaw = process.env.MEDUSA_BACKEND_URL || ""
@@ -89,13 +102,70 @@ export async function GET(req: NextRequest) {
         })
       }
     }
+
     const text = await res.text()
-    return new NextResponse(text, {
-      status: res.status,
-      headers: {
-        "content-type": res.headers.get("content-type") || "application/json",
-      },
-    })
+
+    // If Medusa call failed, just proxy the error body
+    if (!res.ok) {
+      return new NextResponse(text, {
+        status: res.status,
+        headers: {
+          "content-type": res.headers.get("content-type") || "application/json",
+        },
+      })
+    }
+
+    let data: any
+    try {
+      data = JSON.parse(text)
+    } catch {
+      // If parsing fails, fall back to raw proxy
+      return new NextResponse(text, {
+        status: res.status,
+        headers: {
+          "content-type": res.headers.get("content-type") || "application/json",
+        },
+      })
+    }
+
+    const products = Array.isArray(data?.products) ? data.products : []
+    const ids = products.map((p: any) => p.id).filter(Boolean)
+
+    if (ids.length) {
+      try {
+        const pg = getPgPool()
+        const catRes = await pg.query(
+          `select pcp.product_id, pc.id, pc.name
+             from product_category_product pcp
+             join product_category pc
+               on pc.id = pcp.product_category_id
+            where pcp.product_id = any($1::text[])
+              and pc.deleted_at is null`,
+          [ids],
+        )
+
+        const byProduct = new Map<string, { id: string; name: string | null }[]>()
+        for (const row of catRes.rows as any[]) {
+          const list = byProduct.get(row.product_id) || []
+          list.push({ id: row.id, name: row.name })
+          byProduct.set(row.product_id, list)
+        }
+
+        for (const p of products) {
+          const existing = (p as any).categories
+          if (!existing || !Array.isArray(existing) || !existing.length) {
+            const cats = byProduct.get(p.id)
+            if (cats && cats.length) {
+              ;(p as any).categories = cats
+            }
+          }
+        }
+      } catch {
+        // Best-effort enrichment; ignore DB errors here
+      }
+    }
+
+    return NextResponse.json(data, { status: res.status })
   } catch (e: any) {
     return NextResponse.json(
       { error: e?.message || String(e) },

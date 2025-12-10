@@ -3,6 +3,7 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
+import { Pool } from "pg"
 
 function requireEnv() {
   const baseRaw = process.env.MEDUSA_BACKEND_URL || ""
@@ -42,6 +43,18 @@ async function loginAndGetCookie(base: string): Promise<string | null> {
  */
 type PluginSyncResult = { ok: boolean; status?: number; err?: string }
 
+let pgPool: Pool | null = null
+
+function getPgPool(): Pool {
+  if (pgPool) return pgPool
+  const conn = process.env.PG_CONN_STRING || ""
+  if (!conn.trim()) {
+    throw new Error("PG_CONN_STRING missing in environment")
+  }
+  pgPool = new Pool({ connectionString: conn })
+  return pgPool
+}
+
 async function syncProductCategories(
   base: string,
   token: string,
@@ -51,68 +64,58 @@ async function syncProductCategories(
   if (!categoryIds.length) return { ok: true }
 
   try {
-    const url = `${base}/admin/custom/products/${encodeURIComponent(
-      productId,
-    )}/categories`
+    const pg = getPgPool()
 
-    // 1) Bearer
-    let res = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "x-medusa-access-token": token,
-        "x-medusa-api-key": token,
-        "x-api-key": token,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ category_ids: categoryIds }),
-      cache: "no-store",
-    })
+    await pg.query("BEGIN")
+    try {
+      // Ensure product exists
+      const prodRes = await pg.query(
+        "select id from product where id = $1 and deleted_at is null",
+        [productId],
+      )
+      if (!prodRes.rows.length) {
+        throw new Error("Product not found")
+      }
 
-    // 2) Basic fallback
-    if (res.status === 401) {
+      // Keep only existing categories
+      const catRes = await pg.query(
+        `select id
+           from product_category
+          where id = ANY($1::text[])
+            and deleted_at is null`,
+        [categoryIds],
+      )
+      const validCatIds = catRes.rows.map((r: any) => r.id)
+      if (!validCatIds.length) {
+        throw new Error("No valid categories for given category_ids")
+      }
+
+      // INSERT only missing links (add-only)
+      await pg.query(
+        `insert into product_category_product (product_id, product_category_id)
+         select $1 as product_id, id as product_category_id
+           from product_category
+          where id = ANY($2::text[])
+            and deleted_at is null
+            and not exists (
+              select 1
+                from product_category_product pcp
+               where pcp.product_id = $1
+                 and pcp.product_category_id = product_category.id
+            )`,
+        [productId, validCatIds],
+      )
+
+      await pg.query("COMMIT")
+      return { ok: true, status: 200 }
+    } catch (inner: any) {
       try {
-        const basic = Buffer.from(`${token}:`).toString("base64")
-        const resBasic = await fetch(url, {
-          method: "POST",
-          headers: {
-            Authorization: `Basic ${basic}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ category_ids: categoryIds }),
-          cache: "no-store",
-        })
-        if (resBasic.status !== 401) {
-          res = resBasic
-        }
+        await pg.query("ROLLBACK")
       } catch {}
+      return { ok: false, status: 500, err: inner?.message || String(inner) }
     }
-
-    // 3) Cookie session fallback
-    if (res.status === 401) {
-      const cookie = await loginAndGetCookie(base)
-      if (cookie) {
-        res = await fetch(url, {
-          method: "POST",
-          headers: { cookie, "Content-Type": "application/json" },
-          body: JSON.stringify({ category_ids: categoryIds }),
-          cache: "no-store",
-        })
-      }
-    }
-
-    let err: string | undefined
-    if (!res.ok) {
-      try {
-        err = await res.text()
-      } catch {
-        err = undefined
-      }
-    }
-
-    return { ok: res.ok, status: res.status, err }
-  } catch {
-    return { ok: false, err: "network_error" }
+  } catch (e: any) {
+    return { ok: false, err: e?.message || "pg_connection_error" }
   }
 }
 
@@ -208,12 +211,67 @@ export async function GET(
     }
 
     const text = await res.text()
-    return new NextResponse(text, {
-      status: res.status,
-      headers: {
-        "content-type": res.headers.get("content-type") || "application/json",
-      },
-    })
+
+    // If Medusa call failed, just proxy the raw body
+    if (!res.ok) {
+      return new NextResponse(text, {
+        status: res.status,
+        headers: {
+          "content-type": res.headers.get("content-type") || "application/json",
+        },
+      })
+    }
+
+    let data: any
+    try {
+      data = JSON.parse(text)
+    } catch {
+      // Fallback to raw proxy if body is not JSON
+      return new NextResponse(text, {
+        status: res.status,
+        headers: {
+          "content-type": res.headers.get("content-type") || "application/json",
+        },
+      })
+    }
+
+    const product = (data && typeof data === "object" && "product" in data)
+      ? (data as any).product
+      : data
+
+    const prodId = product?.id || id
+
+    if (prodId) {
+      try {
+        const pg = getPgPool()
+        const catRes = await pg.query(
+          `select pc.id, pc.name
+             from product_category_product pcp
+             join product_category pc
+               on pc.id = pcp.product_category_id
+            where pcp.product_id = $1
+              and pc.deleted_at is null`,
+          [prodId],
+        )
+
+        const cats = catRes.rows as any[]
+        const existing = (product as any).categories
+        if (!existing || !Array.isArray(existing) || !existing.length) {
+          if (cats && cats.length) {
+            ;(product as any).categories = cats
+          }
+        }
+      } catch {
+        // best-effort only; ignore enrichment errors
+      }
+    }
+
+    if (data && typeof data === "object" && "product" in data) {
+      ;(data as any).product = product
+      return NextResponse.json(data, { status: res.status })
+    }
+
+    return NextResponse.json(product, { status: res.status })
   } catch (e: any) {
     return NextResponse.json(
       { error: e?.message || String(e) },
